@@ -1,0 +1,1 @@
+# sticker-center-frontend
