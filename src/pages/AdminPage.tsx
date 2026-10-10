@@ -10,8 +10,8 @@ export function AdminPage() {
   const toast = useToast();
 
   const [token, setToken] = useState<string | null>(adminToken.get());
-  const [email, setEmail] = useState('admin@stickerhub.local');
-  const [password, setPassword] = useState('admin1234');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Dashboard data
