@@ -258,11 +258,11 @@ export function HomePage() {
               </div>
 
               {categoriesLoading ? (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div
                       key={i}
-                      className="aspect-[16/10] animate-pulse rounded-2xl border border-[#DFB992]/15 bg-[#141210]"
+                      className="aspect-[9/16] animate-pulse rounded-2xl border border-[#DFB992]/15 bg-[#141210]"
                     />
                   ))}
                 </div>
@@ -273,13 +273,13 @@ export function HomePage() {
                   emoji="✦"
                 />
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
                   {categories.map((cat) => (
                     <button
                       key={cat.id}
                       type="button"
                       onClick={() => handleCategorySelect(cat.slug)}
-                      className="group relative aspect-[16/10] overflow-hidden rounded-2xl border border-[#DFB992]/25 bg-[#141210] p-3 text-left shadow-card transition duration-300 hover:-translate-y-1 hover:border-[#DFB992]/70 hover:shadow-glow sm:p-4"
+                      className="group relative aspect-[9/16] overflow-hidden rounded-2xl border border-[#DFB992]/25 bg-[#141210] p-3.5 text-left shadow-card transition duration-300 hover:-translate-y-1 hover:border-[#DFB992]/70 hover:shadow-glow sm:p-4"
                     >
                       {/* Background Cover Photo */}
                       {cat.thumbnail_url ? (
@@ -293,19 +293,19 @@ export function HomePage() {
                         <div className="absolute inset-0 bg-gradient-to-br from-[#241E1A] via-[#14110F] to-[#0A0807]" />
                       )}
 
-                      {/* Dark cinematic gradient vignette */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#090807] via-[#090807]/65 to-black/30" />
+                      {/* Dark cinematic gradient vignette tailored for vertical 9:16 stories */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#090807] via-[#090807]/75 via-45% to-black/20" />
 
                       {/* Card Content Overlay */}
                       <div className="relative z-10 flex h-full flex-col justify-between">
                         <div className="flex items-start justify-between">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#DFB992]/30 bg-[#12100E]/80 text-[#DFB992] backdrop-blur-md">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#DFB992]/30 bg-[#12100E]/85 text-[#DFB992] backdrop-blur-md">
                             <CategoryIcon slug={cat.slug} name={cat.name} size={16} />
                           </div>
 
                           {cat.folders && cat.folders.length > 0 ? (
-                            <span className="flex items-center gap-1 rounded-full border border-[#DFB992]/30 bg-[#12100E]/85 px-2.5 py-0.5 text-[10px] font-semibold text-[#DFB992] backdrop-blur-md">
-                              <IconFolder size={12} />
+                            <span className="flex items-center gap-1 rounded-full border border-[#DFB992]/30 bg-[#12100E]/85 px-2 py-0.5 text-[10px] font-semibold text-[#DFB992] backdrop-blur-md">
+                              <IconFolder size={11} />
                               <span>{cat.folders.length} {cat.folders.length === 1 ? 'pasta' : 'pastas'}</span>
                             </span>
                           ) : (
@@ -320,14 +320,18 @@ export function HomePage() {
                             {cat.name}
                           </h3>
                           {cat.folders && cat.folders.length > 0 ? (
-                            <p className="mt-0.5 line-clamp-1 text-[11px] text-[#DFB992]/90">
+                            <p className="mt-1 line-clamp-2 text-[11px] leading-tight text-[#DFB992]/90">
                               {cat.folders.map((f) => f.name).join(' • ')}
                             </p>
                           ) : cat.description ? (
-                            <p className="mt-0.5 line-clamp-1 text-[11px] text-[#A8988B]">
+                            <p className="mt-1 line-clamp-2 text-[11px] leading-tight text-[#A8988B]">
                               {cat.description}
                             </p>
-                          ) : null}
+                          ) : (
+                            <p className="mt-1 text-[11px] text-[#A8988B]">
+                              {cat.sticker_count} {cat.sticker_count === 1 ? 'figurinha' : 'figurinhas'}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </button>
@@ -419,13 +423,13 @@ export function HomePage() {
                     <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-[#DFB992]">
                       Pastas disponíveis
                     </h3>
-                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3.5 md:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3.5 md:grid-cols-4 lg:grid-cols-5">
                       {categoryFolders.map((f) => (
                         <button
                           key={f.id}
                           type="button"
                           onClick={() => handleFolderSelect(f.slug)}
-                          className="group relative aspect-[16/10] overflow-hidden rounded-2xl border border-[#DFB992]/25 bg-[#141210] p-3 text-left shadow-card transition duration-300 hover:-translate-y-1 hover:border-[#DFB992]/70 hover:shadow-glow"
+                          className="group relative aspect-[9/16] overflow-hidden rounded-2xl border border-[#DFB992]/25 bg-[#141210] p-3 text-left shadow-card transition duration-300 hover:-translate-y-1 hover:border-[#DFB992]/70 hover:shadow-glow"
                         >
                           {f.thumbnail_url ? (
                             <img
@@ -437,7 +441,7 @@ export function HomePage() {
                           ) : (
                             <div className="absolute inset-0 bg-gradient-to-br from-[#241E1A] via-[#14110F] to-[#0A0807]" />
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#090807] via-[#090807]/60 to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#090807] via-[#090807]/75 via-45% to-black/20" />
 
                           <div className="relative z-10 flex h-full flex-col justify-between">
                             <div className="flex justify-between">
