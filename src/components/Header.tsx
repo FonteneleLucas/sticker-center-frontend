@@ -1,11 +1,26 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { IconHeart, IconImagePlus, IconSearch, IconSparkles } from './Icons';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  BrandEmblem,
+  IconHeart,
+  IconHome,
+  IconImagePlus,
+  IconPlusCircle,
+  IconSearch,
+  IconSparkles,
+} from './Icons';
 import { useFavorites } from '../lib/favorites';
 
-export function Header({ initialQuery = '' }: { initialQuery?: string }) {
+export function Header({
+  initialQuery = '',
+  hideMobileSearch = false,
+}: {
+  initialQuery?: string;
+  hideMobileSearch?: boolean;
+}) {
   const [q, setQ] = useState(initialQuery);
   const navigate = useNavigate();
+  const location = useLocation();
   const favs = useFavorites();
 
   const handleSearch = (e: FormEvent) => {
@@ -18,89 +33,145 @@ export function Header({ initialQuery = '' }: { initialQuery?: string }) {
     }
   };
 
+  const isActive = (path: string) => location.pathname === path;
+
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <Link to="/" className="flex items-center gap-2.5 focus-visible:outline-offset-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
-            <svg viewBox="0 0 64 64" className="h-6 w-6" fill="currentColor">
-              <path d="M20 40c0-9 7-18 16-18 5 0 8 3 8 7 0 6-8 7-12 7" fill="none" stroke="#fff" strokeWidth="6" strokeLinecap="round"/>
-              <path d="M44 44 L44 36 L36 44 Z" fill="#fde047" stroke="#fff" strokeWidth="3" strokeLinejoin="round"/>
-            </svg>
+    <>
+      <header className="sticky top-0 z-40 border-b border-[#DFB992]/15 bg-[#0B0908]/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <Link
+            to="/"
+            className="group flex items-center gap-2.5 focus-visible:outline-offset-4"
+          >
+            <BrandEmblem className="h-10 w-10 transition-transform duration-300 group-hover:scale-105" />
+            <div className="flex flex-col leading-none">
+              <span className="font-serif text-xl font-bold tracking-[0.18em] text-[#F5EDE4] sm:text-2xl">
+                STORIES
+              </span>
+              <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.34em] text-[#DFB992]">
+                &amp; STICKERS
+              </span>
+            </div>
+          </Link>
+
+          {/* Search bar on desktop */}
+          <form onSubmit={handleSearch} className="hidden max-w-md flex-1 md:block">
+            <div className="relative">
+              <input
+                type="text"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Busque figurinhas..."
+                className="w-full rounded-full border border-[#DFB992]/25 bg-[#151210]/90 py-2 pl-10 pr-4 text-sm text-[#F5EDE4] placeholder:text-[#8E7F70] focus:border-[#DFB992] focus:outline-none focus:ring-1 focus:ring-[#DFB992]"
+              />
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#DFB992]/80">
+                <IconSearch size={17} />
+              </div>
+            </div>
+          </form>
+
+          <div className="flex items-center gap-2">
+            <Link
+              to="/favoritos"
+              className="icon-btn relative border border-[#DFB992]/20 bg-[#151210] text-[#DFB992] hover:border-[#DFB992]/50 hover:bg-[#1E1A17]"
+              title="Meus Favoritos"
+              aria-label="Ver favoritos"
+            >
+              <IconHeart size={20} filled={favs.length > 0} />
+              {favs.length > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#DFB992] px-1 text-[10px] font-extrabold text-[#120F0D]">
+                  {favs.length}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              to="/editor"
+              className="btn-secondary hidden gap-1.5 rounded-full py-2 text-xs sm:inline-flex"
+              title="Adicionar figurinha sobre foto"
+            >
+              <IconImagePlus size={16} />
+              <span>Editor de Stories</span>
+            </Link>
+
+            <Link
+              to="/criar"
+              className="btn-primary gap-1.5 rounded-full py-2 text-xs"
+              title="Criar figurinha personalizada"
+            >
+              <IconSparkles size={15} />
+              <span className="hidden min-[400px]:inline">Criar Figurinha</span>
+            </Link>
           </div>
-          <div className="flex flex-col">
-            <span className="text-lg font-black tracking-tight text-slate-900">
-              Sticker<span className="text-brand-600">Hub</span>
-            </span>
+        </div>
+
+        {/* Mobile search input (shown when not hidden by page custom search) */}
+        {!hideMobileSearch && (
+          <div className="border-t border-[#DFB992]/10 px-4 py-2.5 md:hidden">
+            <form onSubmit={handleSearch} className="relative">
+              <input
+                type="text"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Busque figurinhas..."
+                className="w-full rounded-full border border-[#DFB992]/25 bg-[#151210] py-2 pl-9 pr-4 text-xs text-[#F5EDE4] placeholder:text-[#8E7F70] focus:border-[#DFB992] focus:outline-none"
+              />
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#DFB992]/80">
+                <IconSearch size={15} />
+              </div>
+            </form>
           </div>
+        )}
+      </header>
+
+      {/* Mobile Bottom Navigation Bar matching reference phone mockups */}
+      <nav
+        aria-label="Navegação principal mobile"
+        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#DFB992]/15 bg-[#0C0A09]/95 px-2 py-2 backdrop-blur-lg md:hidden"
+      >
+        <Link
+          to="/"
+          className={`flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium transition ${
+            isActive('/') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
+          }`}
+        >
+          <IconHome size={20} />
+          <span>Início</span>
         </Link>
 
-        {/* Search bar on desktop */}
-        <form onSubmit={handleSearch} className="hidden max-w-md flex-1 md:block">
-          <div className="relative">
-            <input
-              type="text"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar stickers por nome ou tags..."
-              className="input pl-10 pr-4 text-sm"
-            />
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-              <IconSearch size={18} />
-            </div>
-          </div>
-        </form>
+        <Link
+          to="/favoritos"
+          className={`relative flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium transition ${
+            isActive('/favoritos') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
+          }`}
+        >
+          <IconHeart size={20} filled={isActive('/favoritos')} />
+          <span>Favoritos</span>
+          {favs.length > 0 && (
+            <span className="absolute right-2 top-0.5 h-2 w-2 rounded-full bg-[#DFB992]" />
+          )}
+        </Link>
 
-        <div className="flex items-center gap-2">
-          <Link
-            to="/favoritos"
-            className="icon-btn relative text-slate-600 hover:bg-slate-100"
-            title="Meus Favoritos"
-            aria-label="Ver favoritos"
-          >
-            <IconHeart size={22} />
-            {favs.length > 0 && (
-              <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
-                {favs.length}
-              </span>
-            )}
-          </Link>
+        <Link
+          to="/criar"
+          className={`flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium transition ${
+            isActive('/criar') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
+          }`}
+        >
+          <IconPlusCircle size={20} />
+          <span>Criar</span>
+        </Link>
 
-          <Link
-            to="/editor"
-            className="btn-secondary hidden gap-1.5 py-1.5 text-xs sm:inline-flex"
-            title="Adicionar sticker sobre fotografia"
-          >
-            <IconImagePlus size={16} />
-            <span>Editor de Foto</span>
-          </Link>
-
-          <Link
-            to="/criar"
-            className="btn-primary gap-1.5 py-1.5 text-xs"
-            title="Criar sticker personalizado"
-          >
-            <IconSparkles size={16} />
-            <span className="hidden min-[420px]:inline">Criar Sticker</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Mobile search input */}
-      <div className="border-t border-slate-100 px-4 py-2 md:hidden">
-        <form onSubmit={handleSearch} className="relative">
-          <input
-            type="text"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar stickers..."
-            className="input pl-9 pr-3 py-1.5 text-xs"
-          />
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-            <IconSearch size={16} />
-          </div>
-        </form>
-      </div>
-    </header>
+        <Link
+          to="/editor"
+          className={`flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium transition ${
+            isActive('/editor') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
+          }`}
+        >
+          <IconImagePlus size={20} />
+          <span>Stories</span>
+        </Link>
+      </nav>
+    </>
   );
 }

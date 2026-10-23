@@ -38,22 +38,24 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       <div
-        className="pointer-events-none fixed inset-x-0 bottom-4 z-[100] flex flex-col items-center gap-2 px-4"
+        className="pointer-events-none fixed inset-x-0 bottom-16 z-[100] flex flex-col items-center gap-2 px-4 md:bottom-6"
         aria-live="polite"
         role="status"
       >
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex max-w-md items-start gap-2 rounded-2xl px-4 py-3 text-sm font-medium shadow-lg animate-[toast-in_.18s_ease-out] ${
+            className={`pointer-events-auto flex max-w-md items-center gap-2.5 rounded-full border px-5 py-2.5 text-xs font-semibold shadow-glow backdrop-blur-md animate-[toast-in_.18s_ease-out] ${
               t.kind === 'success'
-                ? 'bg-emerald-600 text-white'
+                ? 'border-[#DFB992] bg-[#161311]/95 text-[#F2DEC9]'
                 : t.kind === 'error'
-                  ? 'bg-rose-600 text-white'
-                  : 'bg-slate-900 text-white'
+                  ? 'border-rose-500/50 bg-[#221212]/95 text-rose-200'
+                  : 'border-[#DFB992]/40 bg-[#141210]/95 text-[#E6D5C3]'
             }`}
           >
-            <span aria-hidden>{t.kind === 'success' ? '✓' : t.kind === 'error' ? '!' : 'ℹ'}</span>
+            <span className="text-[#DFB992]" aria-hidden>
+              {t.kind === 'success' ? '✦' : t.kind === 'error' ? '!' : '✦'}
+            </span>
             <span>{t.message}</span>
           </div>
         ))}

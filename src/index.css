@@ -5,68 +5,81 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    background-color: #090807;
+    color: #F5EFEA;
   }
   :focus-visible {
-    outline: 3px solid theme('colors.brand.500');
+    outline: 2px solid #DFB992;
     outline-offset: 2px;
-    border-radius: 6px;
+    border-radius: 8px;
   }
   body {
     min-height: 100dvh;
+    background-color: #090807;
+    background-image:
+      radial-gradient(ellipse 80% 40% at 50% -10%, rgba(223, 185, 146, 0.12), transparent),
+      radial-gradient(ellipse 60% 35% at 85% 20%, rgba(198, 149, 99, 0.06), transparent);
+    color: #F5EFEA;
   }
 }
 
 @layer components {
-  /* Checkerboard background to signal transparency */
+  /* Subtle luxury checkerboard to signal transparency in detail/editor views */
   .checkerboard {
-    background-color: #fff;
+    background-color: #161311;
     background-image:
-      linear-gradient(45deg, #e9e9f0 25%, transparent 25%),
-      linear-gradient(-45deg, #e9e9f0 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #e9e9f0 75%),
-      linear-gradient(-45deg, transparent 75%, #e9e9f0 75%);
+      linear-gradient(45deg, #1E1A17 25%, transparent 25%),
+      linear-gradient(-45deg, #1E1A17 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #1E1A17 75%),
+      linear-gradient(-45deg, transparent 75%, #1E1A17 75%);
     background-size: 20px 20px;
     background-position: 0 0, 0 10px, 10px -10px, -10px 0;
   }
   .checkerboard-dark {
-    background-color: #1e1b2e;
+    background-color: #12100E;
     background-image:
-      linear-gradient(45deg, #2a2640 25%, transparent 25%),
-      linear-gradient(-45deg, #2a2640 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #2a2640 75%),
-      linear-gradient(-45deg, transparent 75%, #2a2640 75%);
+      linear-gradient(45deg, #1A1714 25%, transparent 25%),
+      linear-gradient(-45deg, #1A1714 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #1A1714 75%),
+      linear-gradient(-45deg, transparent 75%, #1A1714 75%);
     background-size: 20px 20px;
     background-position: 0 0, 0 10px, 10px -10px, -10px 0;
   }
 
   .btn {
-    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition
+    @apply inline-flex min-h-[42px] items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition
       disabled:cursor-not-allowed disabled:opacity-50 active:scale-[.98];
   }
   .btn-primary {
-    @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700;
+    @apply btn bg-gradient-to-r from-[#E6C59F] via-[#DFB992] to-[#C89B6E] text-[#120F0D] shadow-glow hover:brightness-105;
   }
   .btn-secondary {
-    @apply btn border border-slate-200 bg-white text-slate-800 hover:bg-slate-50;
+    @apply btn border border-[#DFB992]/30 bg-[#171412] text-[#F2DEC9] hover:border-[#DFB992]/60 hover:bg-[#211C18];
   }
   .btn-ghost {
-    @apply btn text-slate-700 hover:bg-slate-100;
+    @apply btn text-[#D5C7B8] hover:bg-[#1B1815] hover:text-white;
   }
   .btn-danger {
-    @apply btn bg-rose-600 text-white hover:bg-rose-700;
+    @apply btn border border-rose-500/30 bg-rose-950/60 text-rose-200 hover:bg-rose-900/70;
   }
   .icon-btn {
-    @apply inline-flex h-11 w-11 items-center justify-center rounded-xl transition active:scale-95 disabled:opacity-40;
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-full transition active:scale-95 disabled:opacity-40;
   }
   .input {
-    @apply min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-base text-slate-900
-      placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 sm:text-sm;
+    @apply min-h-[44px] w-full rounded-2xl border border-[#2C251F] bg-[#161311] px-4 py-2.5 text-base text-[#F5EFEA]
+      placeholder:text-[#8A7B6E] focus:border-[#DFB992]/70 focus:outline-none focus:ring-2 focus:ring-[#DFB992]/20 sm:text-sm;
   }
   .label {
-    @apply mb-1 block text-sm font-medium text-slate-700;
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#C8B29B];
   }
   .chip {
-    @apply inline-flex min-h-[40px] shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 text-sm font-medium transition;
+    @apply inline-flex min-h-[36px] shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-semibold transition sm:text-sm;
+  }
+  .chip-active {
+    @apply chip bg-[#DFB992] text-[#120F0D] shadow-sm;
+  }
+  .chip-inactive {
+    @apply chip bg-transparent text-[#D5C7B8] hover:bg-[#1B1815] hover:text-[#F5EFEA];
   }
 }
 

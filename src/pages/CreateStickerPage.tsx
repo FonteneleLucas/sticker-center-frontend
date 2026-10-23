@@ -3,24 +3,24 @@ import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { useDocumentMeta } from '../lib/seo';
 import { useToast } from '../components/Toast';
-import { downloadBlob, loadImage } from '../lib/image';
+import { downloadBlob } from '../lib/image';
 import {
   IconCamera,
   IconDownload,
   IconSparkles,
   IconBrush,
   IconEraser,
-  IconUndo,
-  IconRedo,
 } from '../components/Icons';
 
 export function CreateStickerPage() {
-  useDocumentMeta('Criar Sticker Personalizado', 'Crie seu próprio sticker com remoção de fundo e contorno branco die-cut.');
+  useDocumentMeta(
+    'Criar Figurinha Personalizada — Stories & Stickers',
+    'Crie sua própria figurinha com remoção de fundo e contorno para seus stories.'
+  );
   const toast = useToast();
 
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [modelLoaded, setModelLoaded] = useState(false);
 
   // Sticker customization options
   const [addBorder, setAddBorder] = useState(true);
@@ -61,7 +61,6 @@ export function CreateStickerPage() {
           outputCategoryMask: true,
           outputConfidenceMasks: false,
         });
-        setModelLoaded(true);
       } catch (err) {
         console.warn('MediaPipe offline or failed to load delegate, fallback segmentation will be used.', err);
       }
@@ -88,13 +87,12 @@ export function CreateStickerPage() {
   // Perform AI segmentation or intelligent edge contrast fallback
   const runSegmentation = async (img: HTMLImageElement) => {
     setIsProcessing(true);
-    toast.info('Segmentando primeiro plano da imagem...');
+    toast.info('Removendo fundo da imagem...');
 
     try {
       const w = img.naturalWidth || img.width;
       const h = img.naturalHeight || img.height;
 
-      // Offscreen canvas for mask
       const maskCanvas = document.createElement('canvas');
       maskCanvas.width = w;
       maskCanvas.height = h;
@@ -102,14 +100,12 @@ export function CreateStickerPage() {
       maskCanvasRef.current = maskCanvas;
 
       if (segmenterRef.current) {
-        // Run MediaPipe segmentation
         const result = segmenterRef.current.segment(img);
         const categoryMask = result.categoryMask;
         if (categoryMask) {
           const maskArray = categoryMask.getAsUint8Array();
           const imgData = maskCtx.createImageData(w, h);
           for (let i = 0; i < maskArray.length; i++) {
-            // Mask: 0 = background, foreground > 0
             const isFg = maskArray[i] > 0;
             imgData.data[i * 4 + 0] = isFg ? 255 : 0;
             imgData.data[i * 4 + 1] = isFg ? 255 : 0;
@@ -119,7 +115,6 @@ export function CreateStickerPage() {
           maskCtx.putImageData(imgData, 0, 0);
         }
       } else {
-        // High quality fallback: Color distance & edge grabcut heuristic
         const tempC = document.createElement('canvas');
         tempC.width = w;
         tempC.height = h;
@@ -128,7 +123,6 @@ export function CreateStickerPage() {
         const imgData = tempCtx.getImageData(0, 0, w, h);
         const maskData = maskCtx.createImageData(w, h);
 
-        // Sample 4 corner colors
         const getPixel = (x: number, y: number) => {
           const idx = (y * w + x) * 4;
           return [imgData.data[idx], imgData.data[idx + 1], imgData.data[idx + 2]];
@@ -145,14 +139,12 @@ export function CreateStickerPage() {
           const g = imgData.data[i + 1];
           const b = imgData.data[i + 2];
 
-          // Check distance to corners
           let minDiff = 999;
           for (const [br, bg, bb] of bgSamples) {
             const diff = Math.hypot(r - br, g - bg, b - bb);
             if (diff < minDiff) minDiff = diff;
           }
 
-          // If different from corner sample, treat as foreground
           const isFg = minDiff > 35;
           maskData.data[i] = isFg ? 255 : 0;
           maskData.data[i + 1] = isFg ? 255 : 0;
@@ -162,16 +154,15 @@ export function CreateStickerPage() {
         maskCtx.putImageData(maskData, 0, 0);
       }
 
-      // Save initial state in history
       const initialMask = maskCtx.getImageData(0, 0, w, h);
       historyRef.current = [initialMask];
       historyIndexRef.current = 0;
 
       renderFinalSticker();
-      toast.success('Fundo removido!');
+      toast.success('Fundo removido com sucesso!');
     } catch (err: any) {
       console.error(err);
-      toast.error('Erro na segmentação. Você pode usar a ferramenta manual.');
+      toast.error('Erro na segmentação. Você pode usar o pincel manual.');
     } finally {
       setIsProcessing(false);
     }
@@ -187,7 +178,6 @@ export function CreateStickerPage() {
     const w = img.naturalWidth || img.width;
     const h = img.naturalHeight || img.height;
 
-    // Give margin for sticker die-cut white border
     const padding = addBorder ? borderWidth * 2 + 20 : 10;
     canvas.width = w + padding * 2;
     canvas.height = h + padding * 2;
@@ -210,7 +200,6 @@ export function CreateStickerPage() {
       outlineCanvas.height = canvas.height;
       const oCtx = outlineCanvas.getContext('2d')!;
 
-      // Draw silhouette repeatedly in radius circle to generate thick outline
       const radius = borderWidth;
       const steps = 36;
       for (let i = 0; i < steps; i++) {
@@ -219,15 +208,13 @@ export function CreateStickerPage() {
         const oy = padding + Math.sin(angle) * radius;
         oCtx.drawImage(maskCanvas, ox, oy);
       }
-      // Fill silhouette with pure white
       oCtx.globalCompositeOperation = 'source-in';
       oCtx.fillStyle = '#ffffff';
       oCtx.fillRect(0, 0, outlineCanvas.width, outlineCanvas.height);
 
-      // Draw subtle drop shadow under outline
       if (addShadow) {
         ctx.save();
-        ctx.shadowColor = 'rgba(0,0,0,0.22)';
+        ctx.shadowColor = 'rgba(0,0,0,0.35)';
         ctx.shadowBlur = 14;
         ctx.shadowOffsetY = 6;
         ctx.drawImage(outlineCanvas, 0, 0);
@@ -245,7 +232,6 @@ export function CreateStickerPage() {
     renderFinalSticker();
   }, [renderFinalSticker]);
 
-  // Touch & Pointer interaction for manual Retouch Brush
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (tool === 'none' || !maskCanvasRef.current) return;
     isPaintingRef.current = true;
@@ -260,7 +246,6 @@ export function CreateStickerPage() {
   const handlePointerUp = () => {
     if (!isPaintingRef.current) return;
     isPaintingRef.current = false;
-    // Save to retouch history
     if (maskCanvasRef.current) {
       const ctx = maskCanvasRef.current.getContext('2d')!;
       const state = ctx.getImageData(0, 0, maskCanvasRef.current.width, maskCanvasRef.current.height);
@@ -284,7 +269,6 @@ export function CreateStickerPage() {
     const canvasX = (e.clientX - rect.x) * scaleX;
     const canvasY = (e.clientY - rect.y) * scaleY;
 
-    // Coordinates on original mask
     const maskX = canvasX - padding;
     const maskY = canvasY - padding;
 
@@ -309,33 +293,34 @@ export function CreateStickerPage() {
     if (!canvas) return;
     canvas.toBlob((blob) => {
       if (blob) {
-        downloadBlob(blob, `meu-sticker-${Date.now()}.png`);
-        toast.success('Sticker transparente baixado com sucesso!');
+        downloadBlob(blob, `figurinha-${Date.now()}.png`);
+        toast.success('Figurinha transparente baixada!');
       }
     }, 'image/png');
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-[#090807] text-[#F5EDE4]">
       <Header />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-black text-slate-900">Criar Sticker Personalizado</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Envie uma foto, remova o fundo automaticamente e aplique um contorno de adesivo em PNG transparente.
+          <h1 className="font-serif text-3xl font-bold text-[#F5EDE4]">
+            Criar Figurinha Personalizada
+          </h1>
+          <p className="mt-1 text-xs text-[#9A8978] sm:text-sm">
+            Envie uma foto, remova o fundo automaticamente e gere sua figurinha em PNG transparente.
           </p>
         </div>
 
         {!rawImageSrc ? (
-          /* Empty state: upload box */
-          <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white p-12 text-center shadow-sm">
-            <div className="mb-4 rounded-full bg-brand-50 p-5 text-brand-600">
-              <IconSparkles size={40} />
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[#DFB992]/35 bg-[#12100E] p-12 text-center shadow-card">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#DFB992]/30 bg-[#1B1714] text-[#DFB992] shadow-glow">
+              <IconSparkles size={32} />
             </div>
-            <h2 className="text-xl font-bold text-slate-800">Selecione uma imagem</h2>
-            <p className="mt-2 max-w-sm text-sm text-slate-500">
-              Escolha uma foto da sua galeria, animal de estimação ou objeto com bom contraste.
+            <h2 className="font-serif text-2xl font-bold text-[#F5EDE4]">Selecione uma imagem</h2>
+            <p className="mt-2 max-w-sm text-xs text-[#9A8978] sm:text-sm">
+              Escolha uma foto da sua galeria, pet, produto ou logotipo para transformar em figurinha.
             </p>
 
             <input
@@ -349,18 +334,17 @@ export function CreateStickerPage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="btn-primary mt-6 text-base shadow-sm"
+              className="btn-primary mt-6 rounded-full px-7 text-sm"
             >
-              <IconCamera size={20} />
+              <IconCamera size={18} />
               <span>Escolher da Galeria</span>
             </button>
           </div>
         ) : (
-          /* Editor and preview workspace */
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
             {/* Canvas Preview Area */}
             <div className="flex flex-col items-center lg:col-span-7">
-              <div className="checkerboard relative flex min-h-[380px] w-full max-w-[500px] items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-card">
+              <div className="checkerboard relative flex min-h-[380px] w-full max-w-[500px] items-center justify-center overflow-hidden rounded-3xl border border-[#DFB992]/25 p-4 shadow-card">
                 <canvas
                   ref={previewCanvasRef}
                   onPointerDown={handlePointerDown}
@@ -371,9 +355,11 @@ export function CreateStickerPage() {
                   }`}
                 />
                 {isProcessing && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
-                    <span className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
-                    <span className="mt-3 text-sm font-semibold text-slate-700">Removendo o fundo...</span>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#090807]/85 backdrop-blur-sm">
+                    <span className="h-8 w-8 animate-spin rounded-full border-4 border-[#DFB992]/25 border-t-[#DFB992]" />
+                    <span className="mt-3 text-xs font-semibold text-[#DFB992]">
+                      Removendo o fundo...
+                    </span>
                   </div>
                 )}
               </div>
@@ -383,24 +369,30 @@ export function CreateStickerPage() {
                 <button
                   type="button"
                   onClick={() => setTool('none')}
-                  className={`btn text-xs ${tool === 'none' ? 'btn-primary' : 'btn-secondary'}`}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                    tool === 'none' ? 'btn-primary' : 'btn-secondary'
+                  }`}
                 >
                   Visualizar
                 </button>
                 <button
                   type="button"
                   onClick={() => setTool('erase')}
-                  className={`btn text-xs ${tool === 'erase' ? 'btn-primary' : 'btn-secondary'}`}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                    tool === 'erase' ? 'btn-primary' : 'btn-secondary'
+                  }`}
                 >
-                  <IconEraser size={16} />
+                  <IconEraser size={15} />
                   <span>Apagar detalhes</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setTool('restore')}
-                  className={`btn text-xs ${tool === 'restore' ? 'btn-primary' : 'btn-secondary'}`}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                    tool === 'restore' ? 'btn-primary' : 'btn-secondary'
+                  }`}
                 >
-                  <IconBrush size={16} />
+                  <IconBrush size={15} />
                   <span>Restaurar</span>
                 </button>
               </div>
@@ -408,26 +400,27 @@ export function CreateStickerPage() {
 
             {/* Customization Controls Sidebar */}
             <div className="flex flex-col gap-6 lg:col-span-5">
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-base font-bold text-slate-800">Efeitos do Adesivo</h3>
+              <div className="rounded-3xl border border-[#DFB992]/20 bg-[#141210] p-6 shadow-card">
+                <h3 className="font-serif text-lg font-bold text-[#F5EDE4]">
+                  Acabamento da Figurinha
+                </h3>
 
                 <div className="mt-4 space-y-4">
-                  {/* Border toggle */}
                   <label className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-700">Contorno branco die-cut</span>
+                    <span className="text-xs font-medium text-[#E6D5C3]">Contorno branco</span>
                     <input
                       type="checkbox"
                       checked={addBorder}
                       onChange={(e) => setAddBorder(e.target.checked)}
-                      className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                      className="h-4 w-4 rounded border-[#DFB992]/40 bg-[#1C1815] text-[#DFB992] focus:ring-[#DFB992]"
                     />
                   </label>
 
                   {addBorder && (
                     <div>
-                      <div className="flex justify-between text-xs text-slate-500">
+                      <div className="flex justify-between text-xs text-[#9A8978]">
                         <span>Espessura da borda</span>
-                        <span>{borderWidth}px</span>
+                        <span className="text-[#DFB992]">{borderWidth}px</span>
                       </div>
                       <input
                         type="range"
@@ -435,27 +428,26 @@ export function CreateStickerPage() {
                         max="32"
                         value={borderWidth}
                         onChange={(e) => setBorderWidth(Number(e.target.value))}
-                        className="mt-1 w-full"
+                        className="mt-1 w-full accent-[#DFB992]"
                       />
                     </div>
                   )}
 
-                  {/* Shadow toggle */}
                   <label className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-700">Sombra suave</span>
+                    <span className="text-xs font-medium text-[#E6D5C3]">Sombra suave</span>
                     <input
                       type="checkbox"
                       checked={addShadow}
                       onChange={(e) => setAddShadow(e.target.checked)}
-                      className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                      className="h-4 w-4 rounded border-[#DFB992]/40 bg-[#1C1815] text-[#DFB992] focus:ring-[#DFB992]"
                     />
                   </label>
 
                   {tool !== 'none' && (
-                    <div className="border-t border-slate-100 pt-4">
-                      <div className="flex justify-between text-xs text-slate-500">
+                    <div className="border-t border-[#DFB992]/15 pt-4">
+                      <div className="flex justify-between text-xs text-[#9A8978]">
                         <span>Tamanho do pincel</span>
-                        <span>{brushSize}px</span>
+                        <span className="text-[#DFB992]">{brushSize}px</span>
                       </div>
                       <input
                         type="range"
@@ -463,22 +455,21 @@ export function CreateStickerPage() {
                         max="60"
                         value={brushSize}
                         onChange={(e) => setBrushSize(Number(e.target.value))}
-                        className="mt-1 w-full"
+                        className="mt-1 w-full accent-[#DFB992]"
                       />
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Action buttons */}
               <div className="flex flex-col gap-3">
                 <button
                   type="button"
                   onClick={handleDownload}
-                  className="btn-primary min-h-[48px] text-base shadow-sm"
+                  className="btn-primary min-h-[48px] rounded-2xl text-sm"
                 >
-                  <IconDownload size={20} />
-                  <span>Baixar como PNG Transparente</span>
+                  <IconDownload size={18} />
+                  <span>Baixar PNG Transparente</span>
                 </button>
 
                 <button
@@ -487,7 +478,7 @@ export function CreateStickerPage() {
                     setRawImageSrc(null);
                     originalImgRef.current = null;
                   }}
-                  className="btn-secondary min-h-[42px] text-xs"
+                  className="btn-secondary min-h-[42px] rounded-2xl text-xs"
                 >
                   Escolher outra foto
                 </button>

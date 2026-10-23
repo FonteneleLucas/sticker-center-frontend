@@ -4,7 +4,7 @@ import { Footer } from '../components/Footer';
 import { api, adminToken, mediaUrl } from '../lib/api';
 import { useToast } from '../components/Toast';
 import type { AdminStats, Category, Sticker } from '../lib/types';
-import { IconTrash, IconPlus, IconCheck } from '../components/Icons';
+import { IconTrash } from '../components/Icons';
 
 export function AdminPage() {
   const toast = useToast();
@@ -18,7 +18,6 @@ export function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
 
   // New sticker form
   const [name, setName] = useState('');
@@ -35,7 +34,6 @@ export function AdminPage() {
   const [creatingCat, setCreatingCat] = useState(false);
 
   const loadAdminData = async () => {
-    setLoading(true);
     try {
       const [sData, stList, cList] = await Promise.all([
         api.admin.stats(),
@@ -53,8 +51,6 @@ export function AdminPage() {
       } else {
         toast.error('Erro ao carregar dados administrativos.');
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -101,14 +97,14 @@ export function AdminPage() {
 
     try {
       await api.admin.createSticker(form);
-      toast.success('Sticker criado com sucesso!');
+      toast.success('Figurinha cadastrada com sucesso!');
       setName('');
       setDescription('');
       setTags('');
       setFile(null);
       loadAdminData();
     } catch (err: any) {
-      toast.error(err.message || 'Falha ao cadastrar sticker.');
+      toast.error(err.message || 'Falha ao cadastrar figurinha.');
     } finally {
       setSubmitting(false);
     }
@@ -132,20 +128,21 @@ export function AdminPage() {
   };
 
   const handleDeleteSticker = async (id: string, hard = false) => {
-    if (!window.confirm(hard ? 'Excluir sticker permanentemente?' : 'Desativar este sticker?')) return;
+    if (!window.confirm(hard ? 'Excluir figurinha permanentemente?' : 'Desativar esta figurinha?'))
+      return;
     try {
       await api.admin.deleteSticker(id, hard);
-      toast.success(hard ? 'Sticker excluído permanentemente.' : 'Sticker desativado.');
+      toast.success(hard ? 'Figurinha excluída.' : 'Figurinha desativada.');
       loadAdminData();
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao excluir sticker.');
+      toast.error(err.message || 'Erro ao excluir figurinha.');
     }
   };
 
   const handleToggleActive = async (s: Sticker) => {
     try {
       await api.admin.updateSticker(s.id, { is_active: !s.is_active });
-      toast.success(s.is_active ? 'Sticker desativado.' : 'Sticker ativado!');
+      toast.success(s.is_active ? 'Figurinha desativada.' : 'Figurinha ativada!');
       loadAdminData();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao atualizar.');
@@ -164,13 +161,13 @@ export function AdminPage() {
 
   if (!token) {
     return (
-      <div className="flex min-h-screen flex-col bg-slate-50">
+      <div className="flex min-h-screen flex-col bg-[#090807] text-[#F5EDE4]">
         <Header />
         <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16">
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-            <h1 className="text-2xl font-black text-slate-900">Acesso Administrativo</h1>
-            <p className="mt-1 text-xs text-slate-500">
-              Faça login para gerenciar catálogo, categorias e métricas.
+          <div className="rounded-3xl border border-[#DFB992]/25 bg-[#141210] p-8 shadow-card">
+            <h1 className="font-serif text-2xl font-bold text-[#F5EDE4]">Acesso Administrativo</h1>
+            <p className="mt-1 text-xs text-[#9A8978]">
+              Faça login para gerenciar figurinhas, categorias e métricas.
             </p>
 
             <form onSubmit={handleLogin} className="mt-6 space-y-4">
@@ -199,7 +196,7 @@ export function AdminPage() {
               <button
                 type="submit"
                 disabled={isLoggingIn}
-                className="btn-primary w-full"
+                className="btn-primary w-full rounded-full"
               >
                 {isLoggingIn ? 'Entrando...' : 'Entrar no Painel'}
               </button>
@@ -212,51 +209,65 @@ export function AdminPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-[#090807] text-[#F5EDE4]">
       <Header />
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#DFB992]/15 pb-4">
           <div>
-            <h1 className="text-3xl font-black text-slate-900">Painel de Administração</h1>
-            <p className="mt-1 text-sm text-slate-500">Gerencie stickers, categorias e visualize métricas.</p>
+            <h1 className="font-serif text-3xl font-bold text-[#F5EDE4]">
+              Painel de Administração
+            </h1>
+            <p className="mt-1 text-xs text-[#9A8978]">
+              Gerencie figurinhas, categorias e acompanhe o desempenho do catálogo.
+            </p>
           </div>
 
-          <button type="button" onClick={handleLogout} className="btn-secondary text-xs">
+          <button type="button" onClick={handleLogout} className="btn-secondary rounded-full text-xs">
             Sair do Admin
           </button>
         </div>
 
         {/* Stats Grid */}
         {stats && (
-          <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-5">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <span className="text-xs font-semibold text-slate-500">Total de Stickers</span>
-              <p className="mt-1 text-2xl font-black text-slate-900">{stats.stickers_total}</p>
+          <div className="mb-8 grid grid-cols-2 gap-3.5 sm:grid-cols-5">
+            <div className="rounded-2xl border border-[#DFB992]/20 bg-[#141210] p-4 shadow-card">
+              <span className="text-xs font-medium text-[#9A8978]">Total de Figurinhas</span>
+              <p className="mt-1 font-serif text-2xl font-bold text-[#F5EDE4]">
+                {stats.stickers_total}
+              </p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <span className="text-xs font-semibold text-slate-500">Stickers Ativos</span>
-              <p className="mt-1 text-2xl font-black text-emerald-600">{stats.stickers_active}</p>
+            <div className="rounded-2xl border border-[#DFB992]/20 bg-[#141210] p-4 shadow-card">
+              <span className="text-xs font-medium text-[#9A8978]">Figurinhas Ativas</span>
+              <p className="mt-1 font-serif text-2xl font-bold text-emerald-400">
+                {stats.stickers_active}
+              </p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <span className="text-xs font-semibold text-slate-500">Categorias</span>
-              <p className="mt-1 text-2xl font-black text-slate-900">{stats.categories_total}</p>
+            <div className="rounded-2xl border border-[#DFB992]/20 bg-[#141210] p-4 shadow-card">
+              <span className="text-xs font-medium text-[#9A8978]">Categorias</span>
+              <p className="mt-1 font-serif text-2xl font-bold text-[#F5EDE4]">
+                {stats.categories_total}
+              </p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <span className="text-xs font-semibold text-slate-500">Total Downloads</span>
-              <p className="mt-1 text-2xl font-black text-brand-600">{stats.downloads_total}</p>
+            <div className="rounded-2xl border border-[#DFB992]/20 bg-[#141210] p-4 shadow-card">
+              <span className="text-xs font-medium text-[#9A8978]">Total Downloads</span>
+              <p className="mt-1 font-serif text-2xl font-bold text-[#DFB992]">
+                {stats.downloads_total}
+              </p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <span className="text-xs font-semibold text-slate-500">Total Cópias</span>
-              <p className="mt-1 text-2xl font-black text-amber-600">{stats.copies_total}</p>
+            <div className="rounded-2xl border border-[#DFB992]/20 bg-[#141210] p-4 shadow-card">
+              <span className="text-xs font-medium text-[#9A8978]">Total Cópias</span>
+              <p className="mt-1 font-serif text-2xl font-bold text-[#F2DEC9]">
+                {stats.copies_total}
+              </p>
             </div>
           </div>
         )}
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           {/* Create Sticker Form */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-5">
-            <h2 className="text-lg font-bold text-slate-900">Novo Sticker</h2>
+          <div className="rounded-3xl border border-[#DFB992]/20 bg-[#141210] p-6 shadow-card lg:col-span-5">
+            <h2 className="font-serif text-xl font-bold text-[#F5EDE4]">Nova Figurinha</h2>
             <form onSubmit={handleCreateSticker} className="mt-4 space-y-4">
               <div>
                 <label className="label">Imagem PNG (com transparência)</label>
@@ -264,7 +275,7 @@ export function AdminPage() {
                   type="file"
                   accept="image/png"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="w-full text-xs"
+                  className="w-full text-xs text-[#C8B6A6] file:mr-3 file:rounded-full file:border-0 file:bg-[#DFB992] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#120F0D]"
                   required
                 />
               </div>
@@ -276,7 +287,7 @@ export function AdminPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="input"
-                  placeholder="Ex: Gato Feliz"
+                  placeholder="Ex: Bom dia iluminado"
                   required
                 />
               </div>
@@ -288,7 +299,7 @@ export function AdminPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="input"
-                  placeholder="Ex: Gatinho sorrindo e piscando"
+                  placeholder="Ex: Frase de bom dia com café"
                 />
               </div>
 
@@ -301,7 +312,9 @@ export function AdminPage() {
                   required
                 >
                   {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -313,7 +326,7 @@ export function AdminPage() {
                   value={tags}
                   onChange={(e) => setTags(e.target.value)}
                   className="input"
-                  placeholder="gato, felino, fofo, pet"
+                  placeholder="bom dia, cafe, rotina, manha"
                 />
               </div>
 
@@ -322,30 +335,34 @@ export function AdminPage() {
                   type="checkbox"
                   checked={isFeatured}
                   onChange={(e) => setIsFeatured(e.target.checked)}
-                  className="h-4 w-4 rounded text-brand-600 focus:ring-brand-500"
+                  className="h-4 w-4 rounded border-[#DFB992]/40 bg-[#1C1815] text-[#DFB992] focus:ring-[#DFB992]"
                 />
-                <span className="text-sm font-medium text-slate-700">Destaque na página inicial</span>
+                <span className="text-xs font-medium text-[#E6D5C3]">
+                  Destaque na página inicial
+                </span>
               </label>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="btn-primary w-full"
+                className="btn-primary w-full rounded-full"
               >
-                {submitting ? 'Enviando...' : 'Cadastrar Sticker'}
+                {submitting ? 'Enviando...' : 'Cadastrar Figurinha'}
               </button>
             </form>
 
             {/* Quick Category Creation */}
-            <div className="mt-8 border-t border-slate-100 pt-6">
-              <h3 className="text-sm font-bold text-slate-800">Criar Nova Categoria</h3>
+            <div className="mt-8 border-t border-[#DFB992]/15 pt-6">
+              <h3 className="font-serif text-base font-bold text-[#F5EDE4]">
+                Criar Nova Categoria
+              </h3>
               <form onSubmit={handleCreateCategory} className="mt-3 space-y-3">
                 <input
                   type="text"
                   value={catName}
                   onChange={(e) => setCatName(e.target.value)}
                   className="input text-xs"
-                  placeholder="Nome da categoria"
+                  placeholder="Nome da categoria (ex: Odontologia, Rotina...)"
                   required
                 />
                 <input
@@ -358,7 +375,7 @@ export function AdminPage() {
                 <button
                   type="submit"
                   disabled={creatingCat}
-                  className="btn-secondary w-full text-xs"
+                  className="btn-secondary w-full rounded-full text-xs"
                 >
                   {creatingCat ? 'Criando...' : '+ Adicionar Categoria'}
                 </button>
@@ -367,12 +384,14 @@ export function AdminPage() {
           </div>
 
           {/* Stickers Table */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-7">
-            <h2 className="text-lg font-bold text-slate-900">Stickers Cadastrados</h2>
+          <div className="rounded-3xl border border-[#DFB992]/20 bg-[#141210] p-6 shadow-card lg:col-span-7">
+            <h2 className="font-serif text-xl font-bold text-[#F5EDE4]">
+              Figurinhas Cadastradas
+            </h2>
             <div className="mt-4 max-h-[600px] overflow-y-auto">
-              <table className="w-full text-left text-xs text-slate-600">
-                <thead className="sticky top-0 bg-white text-slate-400">
-                  <tr className="border-b border-slate-200">
+              <table className="w-full text-left text-xs text-[#C8B6A6]">
+                <thead className="sticky top-0 bg-[#141210] text-[#9A8978]">
+                  <tr className="border-b border-[#DFB992]/15">
                     <th className="py-2">Preview</th>
                     <th className="py-2">Nome</th>
                     <th className="py-2">Status</th>
@@ -380,11 +399,11 @@ export function AdminPage() {
                     <th className="py-2 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#DFB992]/10">
                   {stickers.map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-50">
+                    <tr key={s.id} className="hover:bg-[#1B1714]">
                       <td className="py-2">
-                        <div className="checkerboard h-10 w-10 overflow-hidden rounded-lg border border-slate-200 p-0.5">
+                        <div className="h-11 w-9 overflow-hidden rounded-lg border border-[#DFB992]/25 bg-[#C2A385] p-1">
                           <img
                             src={mediaUrl(s.thumbnail_url)}
                             alt=""
@@ -392,9 +411,9 @@ export function AdminPage() {
                           />
                         </div>
                       </td>
-                      <td className="py-2 font-medium text-slate-800">
+                      <td className="py-2 font-medium text-[#F5EDE4]">
                         {s.name}
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-[10px] text-[#8E7F70]">
                           {s.download_count} downloads • {s.copy_count} cópias
                         </div>
                       </td>
@@ -402,8 +421,10 @@ export function AdminPage() {
                         <button
                           type="button"
                           onClick={() => handleToggleActive(s)}
-                          className={`rounded px-1.5 py-0.5 font-bold ${
-                            s.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            s.is_active
+                              ? 'bg-emerald-500/20 text-emerald-300'
+                              : 'bg-[#221E1B] text-[#8E7F70]'
                           }`}
                         >
                           {s.is_active ? 'Ativo' : 'Inativo'}
@@ -413,11 +434,13 @@ export function AdminPage() {
                         <button
                           type="button"
                           onClick={() => handleToggleFeatured(s)}
-                          className={`rounded px-1.5 py-0.5 font-bold ${
-                            s.is_featured ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-400'
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            s.is_featured
+                              ? 'bg-[#DFB992]/25 text-[#DFB992]'
+                              : 'bg-[#221E1B] text-[#8E7F70]'
                           }`}
                         >
-                          {s.is_featured ? '⭐ Sim' : 'Não'}
+                          {s.is_featured ? '✦ Sim' : 'Não'}
                         </button>
                       </td>
                       <td className="py-2 text-right">
@@ -425,7 +448,7 @@ export function AdminPage() {
                           <button
                             type="button"
                             onClick={() => handleDeleteSticker(s.id, false)}
-                            className="icon-btn h-7 w-7 text-slate-400 hover:text-rose-600"
+                            className="icon-btn h-7 w-7 text-[#8E7F70] hover:text-rose-400"
                             title="Desativar"
                           >
                             <IconTrash size={14} />
