@@ -4,7 +4,7 @@ import { copyImageFromUrl } from './clipboard';
 import { favorites } from './favorites';
 import { downloadSticker } from './image';
 import { trackEvent } from './metrics';
-import { shareStickerFile, shareStickerLink } from './share';
+import { canShareFiles, shareStickerFile, shareStickerLink } from './share';
 import type { Sticker } from './types';
 
 /** Shared copy / download / favorite / share actions with user feedback. */
@@ -25,10 +25,20 @@ export function useStickerActions() {
       if (result.ok) {
         trackEvent(s.id, 'copy');
         toast.success('Sticker copiado! Cole em um app compatível.');
-      } else {
-        toast.error(result.message);
+        return true;
       }
-      return result.ok;
+
+      // Fallback for iOS / Safari / in-app browsers where direct clipboard write is restricted
+      if (canShareFiles()) {
+        const shareOutcome = await shareStickerFile(s);
+        if (shareOutcome === 'shared' || shareOutcome === 'copied') {
+          trackEvent(s.id, 'copy');
+          return true;
+        }
+      }
+
+      toast.error(result.message);
+      return false;
     },
     [toast],
   );

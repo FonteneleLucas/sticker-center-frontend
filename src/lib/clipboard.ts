@@ -37,12 +37,11 @@ async function getPngBlob(url: string): Promise<Blob> {
   const fullUrl = mediaUrl(url);
 
   try {
-    // 1. First attempt: fetch original PNG directly as blob
-    const res = await fetch(fullUrl, { mode: 'cors' });
+    // 1. First attempt: fetch directly as ArrayBuffer and build a clean image/png Blob
+    const res = await fetch(fullUrl, { mode: 'cors', credentials: 'omit' });
     if (res.ok) {
-      const blob = await res.blob();
-      if (blob.type === 'image/png') return blob;
-      return await ensurePng(blob);
+      const buffer = await res.arrayBuffer();
+      return new Blob([buffer], { type: 'image/png' });
     }
   } catch {
     /* fallback to Image/Canvas */
