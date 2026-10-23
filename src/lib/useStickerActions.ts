@@ -14,6 +14,10 @@ export function useStickerActions() {
 
   const copy = useCallback(
     async (s: Sticker) => {
+      if (s.is_premium) {
+        toast.error('Esta figurinha é exclusiva Premium e não pode ser copiada.');
+        return false;
+      }
       setBusy(`copy:${s.id}`);
       // Called synchronously from the click handler: copyImageFromUrl builds the ClipboardItem immediately.
       const result = await copyImageFromUrl(s.image_url);
@@ -31,6 +35,10 @@ export function useStickerActions() {
 
   const download = useCallback(
     async (s: Sticker, variant: 'original' | 'optimized' = 'original') => {
+      if (s.is_premium) {
+        toast.error('Esta figurinha é exclusiva Premium e não pode ser baixada.');
+        return false;
+      }
       setBusy(`download:${s.id}`);
       try {
         await downloadSticker(variant === 'original' ? s.image_url : s.optimized_url, s.slug, variant);

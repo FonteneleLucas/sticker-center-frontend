@@ -16,7 +16,9 @@ import {
   IconShare,
   IconLink,
   IconChevronLeft,
+  IconLock,
 } from '../components/Icons';
+import { WatermarkOverlay } from '../components/WatermarkOverlay';
 
 const BG_SWATCHES = [
   { label: 'Champagne', className: 'bg-[#E5CEB8]' },
@@ -154,14 +156,21 @@ export function StickerDetailPage() {
           {/* Main preview box with Story background tone selector */}
           <div className="md:col-span-5">
             <div
-              className={`relative aspect-[3/4] w-full overflow-hidden rounded-3xl border border-[#DFB992]/30 shadow-card transition-colors duration-300 ${previewBg}`}
+              onContextMenu={sticker.is_premium ? (e) => e.preventDefault() : undefined}
+              className={`relative aspect-[3/4] w-full overflow-hidden rounded-3xl border border-[#DFB992]/30 shadow-card transition-colors duration-300 select-none ${previewBg}`}
             >
               <img
                 src={mediaUrl(sticker.image_url)}
                 alt={sticker.name}
-                className="h-full w-full object-contain p-8 drop-shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
+                draggable={!sticker.is_premium}
+                className={`h-full w-full object-contain p-8 drop-shadow-[0_8px_20px_rgba(0,0,0,0.35)] ${
+                  sticker.is_premium ? 'pointer-events-none select-none blur-[2.5px] opacity-85' : ''
+                }`}
               />
-              {sticker.has_transparency && (
+              {/* Premium Watermark */}
+              {sticker.is_premium && <WatermarkOverlay size="lg" />}
+
+              {sticker.has_transparency && !sticker.is_premium && (
                 <div className="absolute bottom-3 left-3 rounded-full border border-[#DFB992]/30 bg-[#12100E]/85 px-3 py-1 text-[11px] font-medium text-[#F2DEC9] backdrop-blur-md">
                   ✦ PNG Transparente
                 </div>
@@ -190,6 +199,12 @@ export function StickerDetailPage() {
           {/* Details & Actions column */}
           <div className="flex flex-col md:col-span-7">
             <div>
+              {sticker.is_premium && (
+                <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-full border border-[#DFB992]/60 bg-[#120F0D] px-3 py-1 text-[11px] font-bold tracking-widest text-[#DFB992] uppercase shadow-sm">
+                  <span>★</span>
+                  <span>Exclusivo Premium</span>
+                </div>
+              )}
               <h1 className="font-serif text-3xl font-bold text-[#F5EDE4] sm:text-4xl">
                 {sticker.name}
               </h1>
@@ -213,28 +228,47 @@ export function StickerDetailPage() {
               </div>
             )}
 
-            {/* Primary Action Buttons */}
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <button
-                type="button"
-                onClick={() => copy(sticker)}
-                disabled={busy === `copy:${sticker.id}`}
-                className="btn-primary min-h-[48px] flex-1 rounded-2xl text-sm"
-              >
-                <IconCopy size={18} />
-                <span>Copiar para colar nos Stories</span>
-              </button>
+            {/* Primary Action Buttons: Locked Card for Premium OR Regular Actions */}
+            {sticker.is_premium ? (
+              <div className="mt-8 rounded-3xl border border-[#DFB992]/35 bg-[#151210] p-6 shadow-card">
+                <div className="flex items-center gap-2.5 text-[#DFB992]">
+                  <IconLock size={20} />
+                  <span className="font-serif text-lg font-bold">Conteúdo Exclusivo Premium</span>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-[#C8B6A6]">
+                  Esta figurinha faz parte da galeria exclusiva Stories &amp; Stickers Premium.
+                  Para proteger os direitos do criador, a cópia direta para a área de transferência e o download de arquivos originais estão bloqueados nesta página.
+                </p>
+                <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
+                  <div className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#DFB992]/20 bg-[#1E1916] py-3 text-xs font-semibold text-[#DFB992]/70 cursor-not-allowed">
+                    <IconLock size={15} />
+                    <span>Cópia e Download Bloqueados</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => copy(sticker)}
+                  disabled={busy === `copy:${sticker.id}`}
+                  className="btn-primary min-h-[48px] flex-1 rounded-2xl text-sm"
+                >
+                  <IconCopy size={18} />
+                  <span>Copiar para colar nos Stories</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => download(sticker, 'original')}
-                disabled={busy === `download:${sticker.id}`}
-                className="btn-secondary min-h-[48px] flex-1 rounded-2xl text-sm"
-              >
-                <IconDownload size={18} />
-                <span>Baixar PNG Transparente</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => download(sticker, 'original')}
+                  disabled={busy === `download:${sticker.id}`}
+                  className="btn-secondary min-h-[48px] flex-1 rounded-2xl text-sm"
+                >
+                  <IconDownload size={18} />
+                  <span>Baixar PNG Transparente</span>
+                </button>
+              </div>
+            )}
 
             {/* Secondary actions: share and stats */}
             <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[#DFB992]/15 pt-6">
@@ -247,14 +281,16 @@ export function StickerDetailPage() {
                   <IconLink size={15} />
                   <span>Copiar link</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => shareFile(sticker)}
-                  className="btn-secondary min-h-[38px] rounded-full text-xs"
-                >
-                  <IconShare size={15} />
-                  <span>Compartilhar</span>
-                </button>
+                {!sticker.is_premium && (
+                  <button
+                    type="button"
+                    onClick={() => shareFile(sticker)}
+                    className="btn-secondary min-h-[38px] rounded-full text-xs"
+                  >
+                    <IconShare size={15} />
+                    <span>Compartilhar</span>
+                  </button>
+                )}
               </div>
 
               <div className="text-xs text-[#8E7F70]">

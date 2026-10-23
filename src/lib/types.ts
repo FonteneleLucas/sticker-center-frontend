@@ -42,6 +42,7 @@ export interface Sticker {
   category: CategoryRef | null;
   tags: string[];
   is_featured: boolean;
+  is_premium?: boolean;
   license: string | null;
   attribution: string | null;
   download_count: number;

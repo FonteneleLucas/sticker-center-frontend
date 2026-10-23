@@ -26,6 +26,7 @@ export function AdminPage() {
   const [selectedFolderId, setSelectedFolderId] = useState('');
   const [tags, setTags] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -118,6 +119,7 @@ export function AdminPage() {
     form.append('category_id', finalCategoryId);
     if (tags) form.append('tags', tags);
     form.append('is_featured', isFeatured ? 'true' : 'false');
+    form.append('is_premium', isPremium ? 'true' : 'false');
 
     try {
       await api.admin.createSticker(form);
@@ -126,6 +128,8 @@ export function AdminPage() {
       setDescription('');
       setTags('');
       setFile(null);
+      setIsFeatured(false);
+      setIsPremium(false);
       loadAdminData();
     } catch (err: any) {
       toast.error(err.message || 'Falha ao cadastrar figurinha.');
@@ -251,6 +255,16 @@ export function AdminPage() {
       loadAdminData();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao atualizar.');
+    }
+  };
+
+  const handleTogglePremium = async (s: Sticker) => {
+    try {
+      await api.admin.updateSticker(s.id, { is_premium: !s.is_premium });
+      toast.success(s.is_premium ? 'Removido de Premium.' : 'Marcado como Premium!');
+      loadAdminData();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao atualizar status Premium.');
     }
   };
 
@@ -732,6 +746,18 @@ export function AdminPage() {
                 </span>
               </label>
 
+              <label className="flex items-center gap-2 rounded-xl border border-[#DFB992]/30 bg-[#171412] p-2.5">
+                <input
+                  type="checkbox"
+                  checked={isPremium}
+                  onChange={(e) => setIsPremium(e.target.checked)}
+                  className="h-4 w-4 rounded border-[#DFB992]/40 bg-[#1C1815] text-[#DFB992] focus:ring-[#DFB992]"
+                />
+                <span className="text-xs font-semibold text-[#DFB992]">
+                  ★ Figurinha Premium (marca d'água, fundo desfocado, cópia bloqueada)
+                </span>
+              </label>
+
               <button
                 type="submit"
                 disabled={submitting}
@@ -755,6 +781,7 @@ export function AdminPage() {
                     <th className="py-2">Nome</th>
                     <th className="py-2">Status</th>
                     <th className="py-2">Destaque</th>
+                    <th className="py-2">Premium</th>
                     <th className="py-2 text-right">Ações</th>
                   </tr>
                 </thead>
@@ -800,6 +827,19 @@ export function AdminPage() {
                           }`}
                         >
                           {s.is_featured ? '✦ Sim' : 'Não'}
+                        </button>
+                      </td>
+                      <td className="py-2">
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePremium(s)}
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            s.is_premium
+                              ? 'border border-[#DFB992]/60 bg-[#DFB992]/20 text-[#DFB992]'
+                              : 'bg-[#221E1B] text-[#8E7F70]'
+                          }`}
+                        >
+                          {s.is_premium ? '★ Premium' : 'Comum'}
                         </button>
                       </td>
                       <td className="py-2 text-right">
