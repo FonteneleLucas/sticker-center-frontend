@@ -24,9 +24,6 @@ export function Footer() {
           <Link to="/favoritos" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
             Favoritos
           </Link>
-          <Link to="/admin" className="text-[#6E6054] transition hover:text-[#DFB992]">
-            Admin
-          </Link>
         </div>
       </div>
     </footer>
