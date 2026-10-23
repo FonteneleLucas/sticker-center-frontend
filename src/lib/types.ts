@@ -43,6 +43,8 @@ export interface Sticker {
   tags: string[];
   is_featured: boolean;
   is_premium?: boolean;
+  watermarked_url?: string | null;
+  watermarked_thumbnail_url?: string | null;
   license: string | null;
   attribution: string | null;
   download_count: number;
