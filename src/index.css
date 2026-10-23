@@ -51,7 +51,8 @@
       disabled:cursor-not-allowed disabled:opacity-50 active:scale-[.98];
   }
   .btn-primary {
-    @apply btn bg-gradient-to-r from-[#E6C59F] via-[#DFB992] to-[#C89B6E] text-[#120F0D] shadow-glow hover:brightness-105;
+    @apply btn bg-gradient-to-r from-[#E6C59F] via-[#DFB992] to-[#C89B6E] text-[#120F0D] hover:brightness-105;
+    box-shadow: 0 0 28px rgba(223, 185, 146, 0.18);
   }
   .btn-secondary {
     @apply btn border border-[#DFB992]/30 bg-[#171412] text-[#F2DEC9] hover:border-[#DFB992]/60 hover:bg-[#211C18];
@@ -80,6 +81,21 @@
   }
   .chip-inactive {
     @apply chip bg-transparent text-[#D5C7B8] hover:bg-[#1B1815] hover:text-[#F5EFEA];
+  }
+}
+
+@layer utilities {
+  .shadow-card {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(223, 185, 146, 0.12);
+  }
+  .shadow-glow {
+    box-shadow: 0 0 28px rgba(223, 185, 146, 0.18);
+  }
+  .font-serif {
+    font-family: "Cormorant Garamond", Georgia, serif;
+  }
+  .font-sans {
+    font-family: "Plus Jakarta Sans", Inter, system-ui, -apple-system, sans-serif;
   }
 }
 
