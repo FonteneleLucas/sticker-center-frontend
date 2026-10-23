@@ -202,7 +202,7 @@ export function StickerDetailPage() {
               {sticker.is_premium && (
                 <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-full border border-[#DFB992]/60 bg-[#120F0D] px-3 py-1 text-[11px] font-bold tracking-widest text-[#DFB992] uppercase shadow-sm">
                   <span>★</span>
-                  <span>Exclusivo Premium</span>
+                  <span>Premium</span>
                 </div>
               )}
               <h1 className="font-serif text-3xl font-bold text-[#F5EDE4] sm:text-4xl">

@@ -129,7 +129,7 @@ export const StickerCard = memo(function StickerCard({ sticker }: { sticker: Sti
             className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#DFB992]/10 py-1 text-[11px] font-semibold text-[#DFB992] transition hover:bg-[#DFB992]/20"
           >
             <IconLock size={12} />
-            <span>Exclusivo Premium</span>
+            <span>Premium</span>
           </Link>
         ) : (
           <>

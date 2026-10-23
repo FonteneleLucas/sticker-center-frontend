@@ -45,9 +45,8 @@ export const WatermarkOverlay = memo(function WatermarkOverlay({
           <IconLock size={14} />
         </div>
         <span className="mt-1 font-serif text-[10px] font-bold tracking-widest text-[#F2DEC9] uppercase sm:text-[11px]">
-          Exclusivo Premium
+          Premium
         </span>
-        <span className="text-[9px] text-[#C2A385]">Protegido</span>
       </div>
     </div>
   );
