@@ -13,9 +13,7 @@ import {
   IconArrowUpRight,
   IconChevronLeft,
   IconHeart,
-  IconImagePlus,
   IconSearch,
-  IconSparkles,
 } from '../components/Icons';
 
 export function HomePage() {
@@ -221,24 +219,6 @@ export function HomePage() {
                     </div>
                   </div>
                 </form>
-
-                {/* Quick actions */}
-                <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
-                  <Link
-                    to="/editor"
-                    className="btn-primary rounded-full px-5 py-2 text-xs"
-                  >
-                    <IconImagePlus size={16} />
-                    <span>Colar nos Stories</span>
-                  </Link>
-                  <Link
-                    to="/criar"
-                    className="btn-secondary rounded-full px-5 py-2 text-xs"
-                  >
-                    <IconSparkles size={16} />
-                    <span>Criar Figurinha</span>
-                  </Link>
-                </div>
               </div>
             </section>
 

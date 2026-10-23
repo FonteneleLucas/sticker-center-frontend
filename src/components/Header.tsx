@@ -4,10 +4,7 @@ import {
   BrandEmblem,
   IconHeart,
   IconHome,
-  IconImagePlus,
-  IconPlusCircle,
   IconSearch,
-  IconSparkles,
 } from './Icons';
 import { useFavorites } from '../lib/favorites';
 
@@ -84,24 +81,6 @@ export function Header({
                 </span>
               )}
             </Link>
-
-            <Link
-              to="/editor"
-              className="btn-secondary hidden gap-1.5 rounded-full py-2 text-xs sm:inline-flex"
-              title="Adicionar figurinha sobre foto"
-            >
-              <IconImagePlus size={16} />
-              <span>Editor de Stories</span>
-            </Link>
-
-            <Link
-              to="/criar"
-              className="btn-primary gap-1.5 rounded-full py-2 text-xs"
-              title="Criar figurinha personalizada"
-            >
-              <IconSparkles size={15} />
-              <span className="hidden min-[400px]:inline">Criar Figurinha</span>
-            </Link>
           </div>
         </div>
 
@@ -124,7 +103,7 @@ export function Header({
         )}
       </header>
 
-      {/* Mobile Bottom Navigation Bar matching reference phone mockups */}
+      {/* Mobile Bottom Navigation Bar */}
       <nav
         aria-label="Navegação principal mobile"
         className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#DFB992]/15 bg-[#0C0A09]/95 px-2 py-2 backdrop-blur-lg md:hidden"
@@ -150,26 +129,6 @@ export function Header({
           {favs.length > 0 && (
             <span className="absolute right-2 top-0.5 h-2 w-2 rounded-full bg-[#DFB992]" />
           )}
-        </Link>
-
-        <Link
-          to="/criar"
-          className={`flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium transition ${
-            isActive('/criar') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
-          }`}
-        >
-          <IconPlusCircle size={20} />
-          <span>Criar</span>
-        </Link>
-
-        <Link
-          to="/editor"
-          className={`flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium transition ${
-            isActive('/editor') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
-          }`}
-        >
-          <IconImagePlus size={20} />
-          <span>Stories</span>
         </Link>
       </nav>
     </>

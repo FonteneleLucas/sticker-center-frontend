@@ -13,7 +13,6 @@ import {
   IconCopy,
   IconDownload,
   IconHeart,
-  IconImagePlus,
   IconShare,
   IconLink,
   IconChevronLeft,
@@ -235,14 +234,6 @@ export function StickerDetailPage() {
                 <IconDownload size={18} />
                 <span>Baixar PNG Transparente</span>
               </button>
-
-              <Link
-                to={`/editor?sticker=${encodeURIComponent(sticker.slug)}`}
-                className="btn-secondary min-h-[48px] flex-1 rounded-2xl border-[#DFB992]/50 text-sm text-[#DFB992]"
-              >
-                <IconImagePlus size={18} />
-                <span>Abrir no Editor de Stories</span>
-              </Link>
             </div>
 
             {/* Secondary actions: share and stats */}
