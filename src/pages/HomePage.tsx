@@ -4,7 +4,7 @@ import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { StickerCard } from '../components/StickerCard';
 import { EmptyState, ErrorState, SkeletonGrid, Spinner } from '../components/States';
-import { api } from '../lib/api';
+import { api, mediaUrl } from '../lib/api';
 import { useDocumentMeta } from '../lib/seo';
 import type { Category, Page, Sticker, SortOption } from '../lib/types';
 import {
@@ -12,6 +12,7 @@ import {
   CategoryIcon,
   IconArrowUpRight,
   IconChevronLeft,
+  IconFolder,
   IconHeart,
   IconSearch,
 } from '../components/Icons';
@@ -25,10 +26,10 @@ export function HomePage() {
   const navigate = useNavigate();
 
   const activeCategory = searchParams.get('categoria') || '';
+  const activeFolder = searchParams.get('pasta') || '';
   const currentSort = (searchParams.get('ordem') as SortOption) || 'popular';
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [showAllCategories, setShowAllCategories] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [stickersPage, setStickersPage] = useState<Page<Sticker> | null>(null);
@@ -74,6 +75,7 @@ export function HomePage() {
       try {
         const res = await api.listStickers({
           category: categoryFilter,
+          folder: activeFolder || undefined,
           sort: currentSort,
           page: 1,
           page_size: 24,
@@ -94,7 +96,7 @@ export function HomePage() {
     return () => {
       ignore = true;
     };
-  }, [activeCategory, currentSort]);
+  }, [activeCategory, activeFolder, currentSort]);
 
   const loadMore = async () => {
     if (!stickersPage || stickersPage.page >= stickersPage.pages || loadingMore) return;
@@ -104,6 +106,7 @@ export function HomePage() {
       const categoryFilter = activeCategory === 'todos' ? undefined : activeCategory;
       const res = await api.listStickers({
         category: categoryFilter,
+        folder: activeFolder || undefined,
         sort: currentSort,
         page: nextPage,
         page_size: 24,
@@ -121,12 +124,31 @@ export function HomePage() {
 
   const handleCategorySelect = (slug: string) => {
     const next = new URLSearchParams(searchParams);
+    next.delete('pasta');
     if (!slug) {
       next.delete('categoria');
     } else {
       next.set('categoria', slug);
     }
     setSearchParams(next);
+  };
+
+  const handleFolderSelect = (folderSlug: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (!folderSlug) {
+      next.delete('pasta');
+    } else {
+      next.set('pasta', folderSlug);
+    }
+    setSearchParams(next);
+  };
+
+  const handleBack = () => {
+    if (activeFolder) {
+      handleFolderSelect('');
+    } else {
+      handleCategorySelect('');
+    }
   };
 
   const handleSortChange = (sort: SortOption) => {
@@ -144,7 +166,8 @@ export function HomePage() {
   };
 
   const selectedCategoryObj = categories.find((c) => c.slug === activeCategory);
-  const visibleCategories = showAllCategories ? categories : categories.slice(0, 9);
+  const categoryFolders = selectedCategoryObj?.folders || [];
+  const selectedFolderObj = categoryFolders.find((f) => f.slug === activeFolder);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#090807] text-[#F5EDE4]">
@@ -152,11 +175,10 @@ export function HomePage() {
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-3.5 py-5 sm:px-6 sm:py-8">
         {!activeCategory ? (
-          /* ================= INITIAL SCREEN: HERO + CATEGORIAS ONLY ================= */
+          /* ================= INITIAL SCREEN: HERO + NETFLIX-STYLE CATEGORIES ================= */
           <>
             {/* Luxury Hero Banner */}
             <section className="relative mb-8 overflow-hidden rounded-3xl border border-[#DFB992]/25 bg-gradient-to-b from-[#171310] via-[#100D0B] to-[#0B0908] px-5 py-8 text-center shadow-card sm:px-12 sm:py-12">
-              {/* Decorative golden curved wave lines matching reference artwork */}
               <svg
                 className="pointer-events-none absolute inset-0 h-full w-full opacity-25"
                 viewBox="0 0 800 400"
@@ -222,69 +244,92 @@ export function HomePage() {
               </div>
             </section>
 
-            {/* Categorias Section (Only Categories on Initial Screen) */}
+            {/* Categorias Section (Netflix-style catalog cards) */}
             <section className="mb-6">
-              <div className="mb-3.5 flex items-center justify-between px-0.5">
-                <h2 className="text-base font-semibold tracking-wide text-[#F5EDE4] sm:text-lg">
-                  Categorias
-                </h2>
-                {categories.length > 9 ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllCategories((v) => !v)}
-                    className="flex items-center gap-1 text-xs font-medium text-[#DFB992] transition hover:text-[#F2DEC9]"
-                  >
-                    <span>{showAllCategories ? 'Ver menos' : 'Ver todas'}</span>
-                    <span aria-hidden>&gt;</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleCategorySelect('todos')}
-                    className="flex items-center gap-1 text-xs font-medium text-[#DFB992] transition hover:text-[#F2DEC9]"
-                  >
-                    <span>Ver todas</span>
-                    <span aria-hidden>&gt;</span>
-                  </button>
-                )}
+              <div className="mb-4 flex items-center justify-between px-0.5">
+                <div>
+                  <h2 className="font-serif text-xl font-bold tracking-wide text-[#F5EDE4] sm:text-2xl">
+                    Categorias
+                  </h2>
+                  <p className="text-xs text-[#8E7F70]">
+                    Selecione uma categoria para explorar as pastas e figurinhas.
+                  </p>
+                </div>
               </div>
 
               {categoriesLoading ? (
-                <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-3 sm:gap-3.5 md:grid-cols-4 lg:grid-cols-5">
-                  {Array.from({ length: 9 }).map((_, i) => (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-3">
+                  {Array.from({ length: 6 }).map((_, i) => (
                     <div
                       key={i}
-                      className="min-h-[88px] animate-pulse rounded-2xl border border-[#DFB992]/15 bg-[#141210] p-3 sm:min-h-[100px]"
+                      className="aspect-[16/10] animate-pulse rounded-2xl border border-[#DFB992]/15 bg-[#141210]"
                     />
                   ))}
                 </div>
               ) : categories.length === 0 ? (
                 <EmptyState
                   title="Nenhuma categoria cadastrada ainda"
-                  description="Acesse o painel administrativo para cadastrar novas categorias e figurinhas."
+                  description="Acesse o painel administrativo para cadastrar novas categorias e pastas."
                   emoji="✦"
                 />
               ) : (
-                <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-3 sm:gap-3.5 md:grid-cols-4 lg:grid-cols-5">
-                  {visibleCategories.map((cat) => (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-3">
+                  {categories.map((cat) => (
                     <button
                       key={cat.id}
                       type="button"
                       onClick={() => handleCategorySelect(cat.slug)}
-                      className="group relative flex min-h-[88px] flex-col justify-between rounded-2xl border border-[#DFB992]/25 bg-gradient-to-br from-[#181512] to-[#110F0D] p-3 text-left shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-[#DFB992]/65 hover:shadow-glow sm:min-h-[100px] sm:p-4"
+                      className="group relative aspect-[16/10] overflow-hidden rounded-2xl border border-[#DFB992]/25 bg-[#141210] p-3 text-left shadow-card transition duration-300 hover:-translate-y-1 hover:border-[#DFB992]/70 hover:shadow-glow sm:p-4"
                     >
-                      <div className="flex w-full items-start justify-between">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#DFB992]/20 bg-[#1F1A17] text-[#DFB992] transition group-hover:border-[#DFB992]/50 group-hover:bg-[#DFB992]/15">
-                          <CategoryIcon slug={cat.slug} name={cat.name} size={18} />
-                        </div>
-                        <IconArrowUpRight
-                          size={13}
-                          className="text-[#8E7F70] transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#DFB992]"
+                      {/* Background Cover Photo */}
+                      {cat.thumbnail_url ? (
+                        <img
+                          src={mediaUrl(cat.thumbnail_url)}
+                          alt={cat.name}
+                          loading="lazy"
+                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#241E1A] via-[#14110F] to-[#0A0807]" />
+                      )}
+
+                      {/* Dark cinematic gradient vignette */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#090807] via-[#090807]/65 to-black/30" />
+
+                      {/* Card Content Overlay */}
+                      <div className="relative z-10 flex h-full flex-col justify-between">
+                        <div className="flex items-start justify-between">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#DFB992]/30 bg-[#12100E]/80 text-[#DFB992] backdrop-blur-md">
+                            <CategoryIcon slug={cat.slug} name={cat.name} size={16} />
+                          </div>
+
+                          {cat.folders && cat.folders.length > 0 ? (
+                            <span className="flex items-center gap-1 rounded-full border border-[#DFB992]/30 bg-[#12100E]/85 px-2.5 py-0.5 text-[10px] font-semibold text-[#DFB992] backdrop-blur-md">
+                              <IconFolder size={12} />
+                              <span>{cat.folders.length} {cat.folders.length === 1 ? 'pasta' : 'pastas'}</span>
+                            </span>
+                          ) : (
+                            <span className="rounded-full border border-[#DFB992]/20 bg-[#12100E]/80 px-2 py-0.5 text-[10px] font-medium text-[#C8B6A6] backdrop-blur-md">
+                              {cat.sticker_count} {cat.sticker_count === 1 ? 'figurinha' : 'figurinhas'}
+                            </span>
+                          )}
+                        </div>
+
+                        <div>
+                          <h3 className="font-serif text-base font-bold text-[#F5EDE4] drop-shadow-md sm:text-lg">
+                            {cat.name}
+                          </h3>
+                          {cat.folders && cat.folders.length > 0 ? (
+                            <p className="mt-0.5 line-clamp-1 text-[11px] text-[#DFB992]/90">
+                              {cat.folders.map((f) => f.name).join(' • ')}
+                            </p>
+                          ) : cat.description ? (
+                            <p className="mt-0.5 line-clamp-1 text-[11px] text-[#A8988B]">
+                              {cat.description}
+                            </p>
+                          ) : null}
+                        </div>
                       </div>
-                      <span className="mt-2.5 line-clamp-2 text-[11px] font-medium leading-tight text-[#F5EDE4] sm:text-xs">
-                        {cat.name}
-                      </span>
                     </button>
                   ))}
                 </div>
@@ -292,20 +337,20 @@ export function HomePage() {
             </section>
           </>
         ) : (
-          /* ================= CATEGORY VIEW: < CATEGORY ♡ + PILLS + STICKER GRID ================= */
+          /* ================= CATEGORY VIEW: < CATEGORY / PASTA ♡ + PASTAS NETFLIX + STICKERS ================= */
           <>
-            {/* Category Header Bar */}
+            {/* Category / Folder Header Bar */}
             <div className="mb-4 flex items-center justify-between rounded-2xl border border-[#DFB992]/20 bg-[#13100E] px-3 py-2.5 sm:px-5 sm:py-3.5">
               <button
                 type="button"
-                onClick={() => handleCategorySelect('')}
+                onClick={handleBack}
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-[#DFB992]/20 bg-[#1A1614] text-[#DFB992] transition hover:border-[#DFB992] hover:bg-[#DFB992] hover:text-[#120F0D]"
-                aria-label="Voltar para categorias"
+                aria-label={activeFolder ? 'Voltar para todas as pastas' : 'Voltar para categorias'}
               >
                 <IconChevronLeft size={18} />
               </button>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-center">
                 <span className="text-[#DFB992]">
                   <CategoryIcon
                     slug={activeCategory}
@@ -313,13 +358,26 @@ export function HomePage() {
                     size={18}
                   />
                 </span>
-                <h1 className="font-serif text-xl font-bold tracking-wide text-[#F5EDE4] sm:text-2xl">
-                  {activeCategory === 'todos'
-                    ? 'Todas as Figurinhas'
-                    : selectedCategoryObj
-                      ? selectedCategoryObj.name
-                      : activeCategory}
-                </h1>
+                <div className="flex items-center gap-1.5 font-serif text-lg font-bold tracking-wide text-[#F5EDE4] sm:text-2xl">
+                  {activeCategory === 'todos' ? (
+                    <span>Todas as Figurinhas</span>
+                  ) : (
+                    <>
+                      <span
+                        onClick={() => handleFolderSelect('')}
+                        className={activeFolder ? 'cursor-pointer hover:text-[#DFB992] hover:underline' : ''}
+                      >
+                        {selectedCategoryObj ? selectedCategoryObj.name : activeCategory}
+                      </span>
+                      {selectedFolderObj && (
+                        <>
+                          <span className="text-[#6E6054]">/</span>
+                          <span className="text-[#DFB992]">{selectedFolderObj.name}</span>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
 
               <Link
@@ -331,28 +389,79 @@ export function HomePage() {
               </Link>
             </div>
 
-            {/* Horizontal Filter Pills Bar */}
-            <section className="mb-5">
-              <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleCategorySelect('todos')}
-                  className={activeCategory === 'todos' ? 'chip-active' : 'chip-inactive'}
-                >
-                  Todos
-                </button>
-                {categories.map((cat) => (
+            {/* Subfolders Netflix Cards & Horizontal Pills if category has folders */}
+            {categoryFolders.length > 0 && (
+              <section className="mb-6">
+                {/* Horizontal Filter Pills */}
+                <div className="no-scrollbar mb-4 flex items-center gap-2 overflow-x-auto pb-1">
                   <button
-                    key={cat.id}
                     type="button"
-                    onClick={() => handleCategorySelect(cat.slug)}
-                    className={activeCategory === cat.slug ? 'chip-active' : 'chip-inactive'}
+                    onClick={() => handleFolderSelect('')}
+                    className={!activeFolder ? 'chip-active' : 'chip-inactive'}
                   >
-                    {cat.name}
+                    Todas as pastas
                   </button>
-                ))}
-              </div>
-            </section>
+                  {categoryFolders.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => handleFolderSelect(f.slug)}
+                      className={activeFolder === f.slug ? 'chip-active' : 'chip-inactive'}
+                    >
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Subfolder Netflix-style Cards (shown when browsing all folders in category) */}
+                {!activeFolder && (
+                  <div className="mb-6">
+                    <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-[#DFB992]">
+                      Pastas disponíveis
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3.5 md:grid-cols-4">
+                      {categoryFolders.map((f) => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => handleFolderSelect(f.slug)}
+                          className="group relative aspect-[16/10] overflow-hidden rounded-2xl border border-[#DFB992]/25 bg-[#141210] p-3 text-left shadow-card transition duration-300 hover:-translate-y-1 hover:border-[#DFB992]/70 hover:shadow-glow"
+                        >
+                          {f.thumbnail_url ? (
+                            <img
+                              src={mediaUrl(f.thumbnail_url)}
+                              alt={f.name}
+                              loading="lazy"
+                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-gradient-to-br from-[#241E1A] via-[#14110F] to-[#0A0807]" />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#090807] via-[#090807]/60 to-transparent" />
+
+                          <div className="relative z-10 flex h-full flex-col justify-between">
+                            <div className="flex justify-between">
+                              <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#DFB992]/30 bg-[#12100E]/80 text-[#DFB992]">
+                                <IconFolder size={12} />
+                              </span>
+                              <IconArrowUpRight size={13} className="text-[#8E7F70] group-hover:text-[#DFB992]" />
+                            </div>
+                            <div>
+                              <h4 className="font-serif text-sm font-bold text-[#F5EDE4] drop-shadow">
+                                {f.name}
+                              </h4>
+                              <span className="text-[10px] text-[#A8988B]">
+                                {f.sticker_count} {f.sticker_count === 1 ? 'figurinha' : 'figurinhas'}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
 
             {/* Catalog Control Bar */}
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[#DFB992]/15 pb-3">
@@ -386,8 +495,8 @@ export function HomePage() {
               <ErrorState message={error} onRetry={() => window.location.reload()} />
             ) : stickersPage && stickersPage.items.length === 0 ? (
               <EmptyState
-                title="Nenhuma figurinha encontrada nesta categoria"
-                description="Tente selecionar outra categoria acima ou buscar por outra palavra-chave."
+                title="Nenhuma figurinha encontrada nesta pasta/categoria"
+                description="Tente selecionar outra pasta acima ou buscar por outra palavra-chave."
                 emoji="✦"
               />
             ) : (

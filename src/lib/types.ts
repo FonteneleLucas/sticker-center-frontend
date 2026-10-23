@@ -2,13 +2,27 @@ export interface CategoryRef {
   id: string;
   name: string;
   slug: string;
+  parent_id?: string | null;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  parent_id: string | null;
+  sort_order: number;
+  sticker_count: number;
 }
 
 export interface Category extends CategoryRef {
   description: string | null;
   thumbnail_url: string | null;
+  parent_id?: string | null;
   sort_order: number;
   sticker_count: number;
+  folders?: Folder[];
   is_active?: boolean;
   created_at?: string;
 }
@@ -51,6 +65,7 @@ export interface ListParams {
   page?: number;
   page_size?: number;
   category?: string;
+  folder?: string;
   sort?: SortOption;
   q?: string;
 }

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { api, adminToken, mediaUrl } from '../lib/api';
 import { useToast } from '../components/Toast';
 import type { AdminStats, Category, Sticker } from '../lib/types';
-import { IconTrash } from '../components/Icons';
+import { IconFolder, IconPlus, IconTrash } from '../components/Icons';
 
 export function AdminPage() {
   const toast = useToast();
@@ -22,16 +22,28 @@ export function AdminPage() {
   // New sticker form
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [categoryId, setCategoryId] = useState('');
+  const [selectedParentCatId, setSelectedParentCatId] = useState('');
+  const [selectedFolderId, setSelectedFolderId] = useState('');
   const [tags, setTags] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // New category form
+  // New Category form (Root category)
   const [catName, setCatName] = useState('');
   const [catDesc, setCatDesc] = useState('');
+  const [catCoverFile, setCatCoverFile] = useState<File | null>(null);
   const [creatingCat, setCreatingCat] = useState(false);
+
+  // New Folder form (Child category / Subpasta)
+  const [folderParentId, setFolderParentId] = useState('');
+  const [folderName, setFolderName] = useState('');
+  const [folderCoverFile, setFolderCoverFile] = useState<File | null>(null);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+
+  // Hidden cover file input ref for quick replacement
+  const [targetCoverId, setTargetCoverId] = useState<string | null>(null);
+  const coverReplaceInputRef = useRef<HTMLInputElement>(null);
 
   const loadAdminData = async () => {
     try {
@@ -43,7 +55,10 @@ export function AdminPage() {
       setStats(sData);
       setStickers(stList.items);
       setCategories(cList);
-      if (cList.length > 0 && !categoryId) setCategoryId(cList[0].id);
+      if (cList.length > 0 && !selectedParentCatId) {
+        setSelectedParentCatId(cList[0].id);
+        setFolderParentId(cList[0].id);
+      }
     } catch (err: any) {
       if (err.status === 401) {
         setToken(null);
@@ -80,18 +95,27 @@ export function AdminPage() {
     setToken(null);
   };
 
+  // Create Sticker
   const handleCreateSticker = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
       toast.error('Selecione um arquivo PNG transparente.');
       return;
     }
+
+    // Determine target category id: either folder id if selected, or parent category id
+    const finalCategoryId = selectedFolderId || selectedParentCatId;
+    if (!finalCategoryId) {
+      toast.error('Selecione uma categoria.');
+      return;
+    }
+
     setSubmitting(true);
     const form = new FormData();
     form.append('file', file);
     form.append('name', name);
     if (description) form.append('description', description);
-    form.append('category_id', categoryId);
+    form.append('category_id', finalCategoryId);
     if (tags) form.append('tags', tags);
     form.append('is_featured', isFeatured ? 'true' : 'false');
 
@@ -110,20 +134,91 @@ export function AdminPage() {
     }
   };
 
+  // Create Root Category
   const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!catName.trim()) return;
     setCreatingCat(true);
     try {
-      await api.admin.createCategory({ name: catName, description: catDesc });
+      const newCat = await api.admin.createCategory({
+        name: catName.trim(),
+        description: catDesc.trim() || undefined,
+      });
+
+      if (catCoverFile) {
+        await api.admin.uploadCategoryCover(newCat.id, catCoverFile);
+      }
+
       toast.success('Categoria criada com sucesso!');
       setCatName('');
       setCatDesc('');
+      setCatCoverFile(null);
       loadAdminData();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao criar categoria.');
     } finally {
       setCreatingCat(false);
+    }
+  };
+
+  // Create Folder inside Category
+  const handleCreateFolder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!folderName.trim()) return;
+    if (!folderParentId) {
+      toast.error('Selecione uma categoria principal para a pasta.');
+      return;
+    }
+    setCreatingFolder(true);
+    try {
+      const newFolder = await api.admin.createCategory({
+        name: folderName.trim(),
+        parent_id: folderParentId,
+      });
+
+      if (folderCoverFile) {
+        await api.admin.uploadCategoryCover(newFolder.id, folderCoverFile);
+      }
+
+      toast.success('Pasta criada com sucesso!');
+      setFolderName('');
+      setFolderCoverFile(null);
+      loadAdminData();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao criar pasta.');
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
+
+  // Quick Cover Replace
+  const handleCoverReplace = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !targetCoverId) return;
+
+    try {
+      await api.admin.uploadCategoryCover(targetCoverId, file);
+      toast.success('Foto de capa atualizada!');
+      loadAdminData();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao atualizar foto de capa.');
+    } finally {
+      setTargetCoverId(null);
+      if (coverReplaceInputRef.current) coverReplaceInputRef.current.value = '';
+    }
+  };
+
+  // Delete Category or Folder
+  const handleDeleteCategory = async (id: string, name: string) => {
+    if (!window.confirm(`Deseja realmente excluir "${name}"? Todas as subpastas vazias também serão removidas.`)) {
+      return;
+    }
+    try {
+      await api.admin.deleteCategory(id);
+      toast.success('Excluído com sucesso.');
+      loadAdminData();
+    } catch (err: any) {
+      toast.error(err.message || 'Não foi possível excluir.');
     }
   };
 
@@ -208,6 +303,9 @@ export function AdminPage() {
     );
   }
 
+  const selectedCategoryObj = categories.find((c) => c.id === selectedParentCatId);
+  const availableFolders = selectedCategoryObj?.folders || [];
+
   return (
     <div className="flex min-h-screen flex-col bg-[#090807] text-[#F5EDE4]">
       <Header />
@@ -219,7 +317,7 @@ export function AdminPage() {
               Painel de Administração
             </h1>
             <p className="mt-1 text-xs text-[#9A8978]">
-              Gerencie figurinhas, categorias e acompanhe o desempenho do catálogo.
+              Gerencie categorias com capas, pastas (subpastas) e figurinhas.
             </p>
           </div>
 
@@ -227,6 +325,15 @@ export function AdminPage() {
             Sair do Admin
           </button>
         </div>
+
+        {/* Hidden File Input for quick cover replacement */}
+        <input
+          ref={coverReplaceInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleCoverReplace}
+        />
 
         {/* Stats Grid */}
         {stats && (
@@ -264,6 +371,263 @@ export function AdminPage() {
           </div>
         )}
 
+        {/* Section 1 & 2: Categorias e Pastas Management */}
+        <div className="mb-10 grid grid-cols-1 gap-8 lg:grid-cols-12">
+          {/* Create Category & Folder Forms */}
+          <div className="space-y-6 lg:col-span-5">
+            {/* Create Category Form */}
+            <div className="rounded-3xl border border-[#DFB992]/20 bg-[#141210] p-6 shadow-card">
+              <h2 className="font-serif text-lg font-bold text-[#F5EDE4]">
+                Nova Categoria Principal
+              </h2>
+              <p className="mt-0.5 text-xs text-[#8E7F70]">
+                Ex: Odontologia, Estética, Bom dia...
+              </p>
+
+              <form onSubmit={handleCreateCategory} className="mt-4 space-y-3.5">
+                <div>
+                  <label className="label">Nome da Categoria</label>
+                  <input
+                    type="text"
+                    value={catName}
+                    onChange={(e) => setCatName(e.target.value)}
+                    className="input text-xs"
+                    placeholder="Ex: Odontologia"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Descrição (opcional)</label>
+                  <input
+                    type="text"
+                    value={catDesc}
+                    onChange={(e) => setCatDesc(e.target.value)}
+                    className="input text-xs"
+                    placeholder="Ex: Coleção profissional para dentistas"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Foto de Fundo / Capa da Categoria (JPG/PNG/WebP)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setCatCoverFile(e.target.files?.[0] || null)}
+                    className="w-full text-xs text-[#C8B6A6] file:mr-3 file:rounded-full file:border-0 file:bg-[#DFB992] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#120F0D]"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={creatingCat}
+                  className="btn-primary w-full rounded-full text-xs"
+                >
+                  {creatingCat ? 'Criando categoria...' : '+ Criar Categoria'}
+                </button>
+              </form>
+            </div>
+
+            {/* Create Folder (Subpasta) Form */}
+            <div className="rounded-3xl border border-[#DFB992]/20 bg-[#141210] p-6 shadow-card">
+              <div className="flex items-center gap-2">
+                <span className="text-[#DFB992]">
+                  <IconFolder size={18} />
+                </span>
+                <h2 className="font-serif text-lg font-bold text-[#F5EDE4]">
+                  Nova Pasta / Subpasta
+                </h2>
+              </div>
+              <p className="mt-0.5 text-xs text-[#8E7F70]">
+                Crie pastas dentro de uma categoria (Ex: Odontologia -&gt; Endodontia, HOF...)
+              </p>
+
+              <form onSubmit={handleCreateFolder} className="mt-4 space-y-3.5">
+                <div>
+                  <label className="label">Categoria Principal</label>
+                  <select
+                    value={folderParentId}
+                    onChange={(e) => setFolderParentId(e.target.value)}
+                    className="input text-xs"
+                    required
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">Nome da Pasta</label>
+                  <input
+                    type="text"
+                    value={folderName}
+                    onChange={(e) => setFolderName(e.target.value)}
+                    className="input text-xs"
+                    placeholder="Ex: Endodontia, HOF, Bom dia..."
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Foto de Fundo / Capa da Pasta (opcional)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFolderCoverFile(e.target.files?.[0] || null)}
+                    className="w-full text-xs text-[#C8B6A6] file:mr-3 file:rounded-full file:border-0 file:bg-[#DFB992] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#120F0D]"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={creatingFolder || categories.length === 0}
+                  className="btn-secondary w-full rounded-full text-xs"
+                >
+                  {creatingFolder ? 'Criando pasta...' : '+ Criar Pasta nesta Categoria'}
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Categories & Folders List View with Covers */}
+          <div className="rounded-3xl border border-[#DFB992]/20 bg-[#141210] p-6 shadow-card lg:col-span-7">
+            <h2 className="font-serif text-xl font-bold text-[#F5EDE4]">
+              Categorias &amp; Pastas Cadastradas
+            </h2>
+            <p className="mt-0.5 text-xs text-[#8E7F70]">
+              Veja suas fotos de capa estilo Netflix e gerencie pastas vinculadas.
+            </p>
+
+            <div className="mt-5 space-y-4 max-h-[700px] overflow-y-auto pr-1">
+              {categories.map((cat) => (
+                <div
+                  key={cat.id}
+                  className="overflow-hidden rounded-2xl border border-[#DFB992]/20 bg-[#171412] p-4 transition hover:border-[#DFB992]/40"
+                >
+                  {/* Category Header Row */}
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      {/* Cover Photo Preview */}
+                      <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-xl border border-[#DFB992]/20 bg-[#0B0908]">
+                        {cat.thumbnail_url ? (
+                          <img
+                            src={mediaUrl(cat.thumbnail_url)}
+                            alt={cat.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[10px] text-[#8E7F70]">
+                            Sem capa
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-serif text-base font-bold text-[#F5EDE4]">
+                            {cat.name}
+                          </h3>
+                          <span className="rounded-full bg-[#DFB992]/15 px-2 py-0.5 text-[10px] font-semibold text-[#DFB992]">
+                            {cat.sticker_count} figurinhas
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#8E7F70]">
+                          /{cat.slug} • {cat.folders?.length || 0} pastas
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTargetCoverId(cat.id);
+                          coverReplaceInputRef.current?.click();
+                        }}
+                        className="rounded-full border border-[#DFB992]/30 px-3 py-1 text-[11px] font-medium text-[#DFB992] hover:bg-[#DFB992]/15"
+                      >
+                        Trocar Capa
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                        className="icon-btn h-8 w-8 text-[#8E7F70] hover:text-rose-400"
+                        title="Excluir Categoria"
+                      >
+                        <IconTrash size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Folders (Subpastas) inside this Category */}
+                  {cat.folders && cat.folders.length > 0 && (
+                    <div className="mt-3.5 border-t border-[#DFB992]/10 pt-3">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#DFB992]/80">
+                        Pastas ({cat.folders.length})
+                      </span>
+                      <div className="mt-2 space-y-2">
+                        {cat.folders.map((f) => (
+                          <div
+                            key={f.id}
+                            className="flex items-center justify-between rounded-xl bg-[#12100E] px-3 py-2 text-xs"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className="h-8 w-11 shrink-0 overflow-hidden rounded-lg border border-[#DFB992]/15 bg-[#090807]">
+                                {f.thumbnail_url ? (
+                                  <img
+                                    src={mediaUrl(f.thumbnail_url)}
+                                    alt={f.name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-[9px] text-[#8E7F70]">
+                                    Sem capa
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[#F5EDE4]">{f.name}</span>
+                                <span className="ml-2 text-[10px] text-[#8E7F70]">
+                                  ({f.sticker_count} figurinhas)
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTargetCoverId(f.id);
+                                  coverReplaceInputRef.current?.click();
+                                }}
+                                className="rounded-full px-2 py-0.5 text-[10px] text-[#DFB992] hover:underline"
+                              >
+                                Trocar Capa
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCategory(f.id, f.name)}
+                                className="icon-btn h-6 w-6 text-[#8E7F70] hover:text-rose-400"
+                                title="Excluir Pasta"
+                              >
+                                <IconTrash size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Sticker Creation Form & Table */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           {/* Create Sticker Form */}
           <div className="rounded-3xl border border-[#DFB992]/20 bg-[#141210] p-6 shadow-card lg:col-span-5">
@@ -303,11 +667,15 @@ export function AdminPage() {
                 />
               </div>
 
+              {/* Category Select */}
               <div>
                 <label className="label">Categoria</label>
                 <select
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
+                  value={selectedParentCatId}
+                  onChange={(e) => {
+                    setSelectedParentCatId(e.target.value);
+                    setSelectedFolderId('');
+                  }}
                   className="input"
                   required
                 >
@@ -318,6 +686,28 @@ export function AdminPage() {
                   ))}
                 </select>
               </div>
+
+              {/* Subfolder Select (if selected category has folders) */}
+              {availableFolders.length > 0 && (
+                <div>
+                  <label className="label flex items-center justify-between">
+                    <span>Pasta / Subpasta</span>
+                    <span className="text-[10px] text-[#DFB992] font-normal">opcional</span>
+                  </label>
+                  <select
+                    value={selectedFolderId}
+                    onChange={(e) => setSelectedFolderId(e.target.value)}
+                    className="input"
+                  >
+                    <option value="">Direto na categoria principal ({selectedCategoryObj?.name})</option>
+                    {availableFolders.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        Pasta: {f.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="label">Tags (separadas por vírgula)</label>
@@ -350,37 +740,6 @@ export function AdminPage() {
                 {submitting ? 'Enviando...' : 'Cadastrar Figurinha'}
               </button>
             </form>
-
-            {/* Quick Category Creation */}
-            <div className="mt-8 border-t border-[#DFB992]/15 pt-6">
-              <h3 className="font-serif text-base font-bold text-[#F5EDE4]">
-                Criar Nova Categoria
-              </h3>
-              <form onSubmit={handleCreateCategory} className="mt-3 space-y-3">
-                <input
-                  type="text"
-                  value={catName}
-                  onChange={(e) => setCatName(e.target.value)}
-                  className="input text-xs"
-                  placeholder="Nome da categoria (ex: Odontologia, Rotina...)"
-                  required
-                />
-                <input
-                  type="text"
-                  value={catDesc}
-                  onChange={(e) => setCatDesc(e.target.value)}
-                  className="input text-xs"
-                  placeholder="Descrição da categoria"
-                />
-                <button
-                  type="submit"
-                  disabled={creatingCat}
-                  className="btn-secondary w-full rounded-full text-xs"
-                >
-                  {creatingCat ? 'Criando...' : '+ Adicionar Categoria'}
-                </button>
-              </form>
-            </div>
           </div>
 
           {/* Stickers Table */}
@@ -414,7 +773,7 @@ export function AdminPage() {
                       <td className="py-2 font-medium text-[#F5EDE4]">
                         {s.name}
                         <div className="text-[10px] text-[#8E7F70]">
-                          {s.download_count} downloads • {s.copy_count} cópias
+                          {s.category?.name || 'Sem categoria'} • {s.download_count} downloads • {s.copy_count} cópias
                         </div>
                       </td>
                       <td className="py-2">

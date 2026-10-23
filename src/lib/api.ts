@@ -110,8 +110,15 @@ export const api = {
     listCategories: () => request<Category[]>('/admin/categories', { auth: true }),
     createCategory: (data: Partial<Category>) =>
       request<Category>('/admin/categories', { method: 'POST', body: JSON.stringify(data), auth: true }),
+    uploadCategoryCover: (id: string, file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return request<Category>(`/admin/categories/${id}/cover`, { method: 'POST', body: form, auth: true });
+    },
     updateCategory: (id: string, data: Partial<Category>) =>
       request<Category>(`/admin/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data), auth: true }),
+    deleteCategory: (id: string) =>
+      request<void>(`/admin/categories/${id}`, { method: 'DELETE', auth: true }),
     reorderCategories: (ids: string[]) =>
       request<void>('/admin/categories/reorder', { method: 'POST', body: JSON.stringify({ ids }), auth: true }),
   },
