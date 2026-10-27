@@ -38,7 +38,7 @@ export function Header({
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-[#DFB992]/15 bg-[#0B0908]/90 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-[#DFB992]/15 bg-[#0B0908]/90 backdrop-blur-md pt-safe">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Link
             to="/"
@@ -90,14 +90,14 @@ export function Header({
                 {!user.is_premium && (
                   <Link
                     to="/assinar"
-                    className="rounded-full border border-[#DFB992]/40 bg-[#DFB992] px-3 py-1.5 text-xs font-bold text-[#120F0D] hover:bg-[#E8C9A5]"
+                    className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-[#DFB992]/40 bg-[#DFB992] px-3.5 py-2 text-xs font-bold text-[#120F0D] hover:bg-[#E8C9A5] active:scale-95 transition"
                   >
                     Assinar
                   </Link>
                 )}
                 <Link
                   to="/perfil"
-                  className="rounded-full border border-[#DFB992]/20 bg-[#151210] px-3 py-1.5 text-xs font-semibold text-[#DFB992] hover:border-[#DFB992]/50 hover:bg-[#1E1A17] transition"
+                  className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-[#DFB992]/20 bg-[#151210] px-3.5 py-2 text-xs font-semibold text-[#DFB992] hover:border-[#DFB992]/50 hover:bg-[#1E1A17] active:scale-95 transition"
                   title="Meu Perfil"
                 >
                   Perfil
@@ -106,7 +106,7 @@ export function Header({
             ) : (
               <Link
                 to="/entrar"
-                className="rounded-full border border-[#DFB992]/40 bg-[#DFB992] px-3 py-1.5 text-xs font-bold text-[#120F0D] hover:bg-[#E8C9A5]"
+                className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-[#DFB992]/40 bg-[#DFB992] px-3.5 py-2 text-xs font-bold text-[#120F0D] hover:bg-[#E8C9A5] active:scale-95 transition"
               >
                 Entrar
               </Link>
@@ -136,7 +136,7 @@ export function Header({
       {/* Mobile Bottom Navigation Bar: Inicio | Explorar | Favoritos | Novidades */}
       <nav
         aria-label="Navegação principal mobile"
-        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#DFB992]/15 bg-[#0C0A09]/95 px-1 py-1.5 backdrop-blur-lg md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#DFB992]/15 bg-[#0C0A09]/95 px-1 py-1.5 pb-safe backdrop-blur-lg md:hidden"
       >
         <Link
           to="/"

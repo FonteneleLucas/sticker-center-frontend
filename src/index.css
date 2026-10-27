@@ -97,6 +97,31 @@
   .font-sans {
     font-family: "Plus Jakarta Sans", Inter, system-ui, -apple-system, sans-serif;
   }
+  .pt-safe {
+    padding-top: constant(safe-area-inset-top);
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .pb-safe {
+    padding-bottom: constant(safe-area-inset-bottom);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pl-safe {
+    padding-left: constant(safe-area-inset-left);
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .pr-safe {
+    padding-right: constant(safe-area-inset-right);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+}
+
+@media all and (display-mode: standalone) {
+  .pt-safe {
+    padding-top: max(env(safe-area-inset-top, 0px), 16px);
+  }
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  }
 }
 
 @keyframes toast-in {
