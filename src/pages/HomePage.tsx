@@ -25,12 +25,7 @@ export function HomePage() {
   );
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, refresh } = useAuth();
-
-  // Ao carregar a Home, dispara o sync para reconhecer pagamentos mesmo que o usuário não tenha clicado em voltar
-  useEffect(() => {
-    refresh(true).catch(() => {});
-  }, [refresh]);
+  const { user } = useAuth();
 
   const activeCategory = searchParams.get('categoria') || '';
   const activeFolder = searchParams.get('pasta') || '';

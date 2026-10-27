@@ -48,6 +48,8 @@ interface AuthCtx {
 
 const Ctx = createContext<AuthCtx | null>(null);
 
+let inFlightSync: Promise<AuthUser | null> | null = null;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<AuthUser | null>(() => {
     return userToken.get() ? getCachedUser() : null;
@@ -77,23 +79,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      try {
-        // Chama o endpoint de sync para confirmar o status da assinatura diretamente no Mercado Pago
-        const synced = await api.billing.sync();
-        setUser(synced);
-        return synced;
-      } catch {
-        // Fallback para /auth/me caso a API externa do MP demore ou offline
-        try {
-          const me = await api.auth.me();
-          setUser(me);
-          return me;
-        } catch {
-          userToken.clear();
-          setUser(null);
-          return null;
-        }
+      // Se já houver um sync em andamento, reaproveita a mesma promessa para evitar requisições duplicadas
+      if (inFlightSync) {
+        return inFlightSync;
       }
+
+      inFlightSync = (async () => {
+        try {
+          // Chama o endpoint de sync para confirmar o status da assinatura diretamente no Mercado Pago
+          const synced = await api.billing.sync();
+          setUser(synced);
+          return synced;
+        } catch {
+          // Fallback para /auth/me caso a API externa do MP demore ou offline
+          try {
+            const me = await api.auth.me();
+            setUser(me);
+            return me;
+          } catch {
+            userToken.clear();
+            setUser(null);
+            return null;
+          }
+        } finally {
+          inFlightSync = null;
+        }
+      })();
+
+      return inFlightSync;
     },
     [setUser],
   );
@@ -102,14 +115,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (userToken.get()) {
       const cached = getCachedUser();
       // Se não há cache OU se o usuário ainda não está com status premium ativo:
-      // Sempre executa o sync com o Mercado Pago para reconhecer pagamentos feitos mesmo que o usuário não tenha clicado em voltar
+      // Executa o sync com o Mercado Pago para reconhecer pagamentos feitos fora do site
       if (!cached || !cached.is_premium) {
         setLoading(!cached);
         refresh(true).finally(() => setLoading(false));
       } else {
         setLoading(false);
-        // Se já está com cache premium válido, roda uma verificação em background sem bloquear a UI
-        refresh(true).catch(() => {});
       }
     } else {
       setLoading(false);
