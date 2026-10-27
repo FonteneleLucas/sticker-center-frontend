@@ -76,3 +76,53 @@ export async function downloadSticker(url: string, slug: string, variant: 'origi
   const blob = await ensurePng(await fetchBlob(url));
   downloadBlob(blob, stickerFilename(slug, variant));
 }
+
+export function recolorImageElement(img: HTMLImageElement, color: string): Promise<Blob> {
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth || img.width;
+  canvas.height = img.naturalHeight || img.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D indisponível');
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0);
+  ctx.globalCompositeOperation = 'source-in';
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((b) => {
+      if (b) resolve(b);
+      else reject(new Error('Falha ao recolorir imagem'));
+    }, 'image/png');
+  });
+}
+
+/**
+ * Recolors a sticker image preserving transparent alpha channel.
+ * Uses source-in composition to replace non-transparent pixels with the chosen color.
+ */
+export async function recolorStickerBlob(imageUrl: string, color: string): Promise<Blob> {
+  const fullUrl = mediaUrl(imageUrl);
+  let blob: Blob;
+  try {
+    const res = await fetch(fullUrl, { mode: 'cors', credentials: 'omit' });
+    if (res.ok) {
+      blob = await res.blob();
+    } else {
+      throw new Error(`HTTP ${res.status}`);
+    }
+  } catch {
+    const img = await loadImage(fullUrl, true);
+    return recolorImageElement(img, color);
+  }
+
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const img = await loadImage(objectUrl, false);
+    return await recolorImageElement(img, color);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+

@@ -4,9 +4,14 @@ import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { StickerCard } from '../components/StickerCard';
 import { ErrorState, Spinner } from '../components/States';
+import { useToast } from '../components/Toast';
 import { api, mediaUrl } from '../lib/api';
+import { copyBlobToClipboard } from '../lib/clipboard';
 import { useIsFavorite } from '../lib/favorites';
+import { recolorStickerBlob, stickerFilename } from '../lib/image';
+import { trackEvent } from '../lib/metrics';
 import { useDocumentMeta } from '../lib/seo';
+import { canShareFiles } from '../lib/share';
 import { useStickerActions } from '../lib/useStickerActions';
 import type { Sticker } from '../lib/types';
 import {
@@ -20,6 +25,7 @@ import { WatermarkOverlay } from '../components/WatermarkOverlay';
 export function StickerDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [sticker, setSticker] = useState<Sticker | null>(null);
   const [related, setRelated] = useState<Sticker[]>([]);
@@ -27,6 +33,11 @@ export function StickerDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isTransparent, setIsTransparent] = useState(true);
   const [customColor, setCustomColor] = useState('#E5CEB8');
+  const [stickerColor, setStickerColor] = useState<string | null>(null);
+  const [recoloredUrl, setRecoloredUrl] = useState<string | null>(null);
+  const [recoloredBlob, setRecoloredBlob] = useState<Blob | null>(null);
+  const [recoloring, setRecoloring] = useState(false);
+  const [copyBusy, setCopyBusy] = useState(false);
 
   const { copy, toggleFavorite, busy } = useStickerActions();
   const isFav = useIsFavorite(sticker?.id || '');
@@ -69,6 +80,87 @@ export function StickerDetailPage() {
       ignore = true;
     };
   }, [slug]);
+
+  // Reset custom color on sticker navigation
+  useEffect(() => {
+    setStickerColor(null);
+  }, [slug]);
+
+  // Process sticker recoloring when sticker or stickerColor changes
+  useEffect(() => {
+    let ignore = false;
+    if (!sticker || !stickerColor) {
+      setRecoloredUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setRecoloredBlob(null);
+      setRecoloring(false);
+      return;
+    }
+
+    setRecoloring(true);
+    recolorStickerBlob(sticker.image_url, stickerColor)
+      .then((blob) => {
+        if (!ignore) {
+          const url = URL.createObjectURL(blob);
+          setRecoloredUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return url;
+          });
+          setRecoloredBlob(blob);
+          setRecoloring(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Erro ao recolorir figurinha:', err);
+        if (!ignore) {
+          setRecoloring(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [sticker, stickerColor]);
+
+  const handleCopy = async () => {
+    if (!sticker) return;
+    if (sticker.is_premium) {
+      toast.error('Esta figurinha é exclusiva Premium e não pode ser copiada.');
+      return;
+    }
+
+    if (stickerColor && recoloredBlob) {
+      setCopyBusy(true);
+      const res = await copyBlobToClipboard(recoloredBlob);
+      setCopyBusy(false);
+      if (res.ok) {
+        trackEvent(sticker.id, 'copy');
+        toast.success('Sticker copiado com a cor personalizada! Cole nos Stories.');
+        return;
+      }
+      if (canShareFiles()) {
+        try {
+          const file = new File([recoloredBlob], stickerFilename(sticker.slug), { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: sticker.name,
+              files: [file],
+            });
+            trackEvent(sticker.id, 'copy');
+            return;
+          }
+        } catch {
+          /* ignore cancel */
+        }
+      }
+      toast.error(res.message);
+      return;
+    }
+
+    await copy(sticker);
+  };
 
   if (loading) {
     return (
@@ -153,10 +245,12 @@ export function StickerDetailPage() {
               style={!isTransparent ? { backgroundColor: customColor } : undefined}
             >
               <img
-                src={mediaUrl(sticker.image_url)}
+                src={recoloredUrl || mediaUrl(sticker.image_url)}
                 alt={sticker.name}
                 draggable={!sticker.is_premium}
-                className={`h-full w-full object-contain p-8 drop-shadow-[0_8px_20px_rgba(0,0,0,0.35)] ${
+                className={`h-full w-full object-contain p-8 drop-shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-opacity duration-200 ${
+                  recoloring ? 'opacity-65' : 'opacity-100'
+                } ${
                   sticker.is_premium ? 'pointer-events-none select-none blur-[2.5px] opacity-85' : ''
                 }`}
               />
@@ -183,10 +277,10 @@ export function StickerDetailPage() {
               {!sticker.is_premium && (
                 <button
                   type="button"
-                  onClick={() => copy(sticker)}
-                  disabled={busy === `copy:${sticker.id}`}
+                  onClick={handleCopy}
+                  disabled={busy === `copy:${sticker.id}` || copyBusy || recoloring}
                   className="absolute top-3.5 right-3.5 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-[#DFB992]/40 bg-[#12100E]/85 text-[#F2DEC9] shadow-lg backdrop-blur-md transition duration-200 hover:scale-105 hover:border-[#DFB992] hover:bg-[#DFB992] hover:text-[#120F0D] disabled:opacity-50"
-                  title={`Copiar ${sticker.name}`}
+                  title={stickerColor ? `Copiar ${sticker.name} com a cor selecionada` : `Copiar ${sticker.name}`}
                   aria-label={`Copiar ${sticker.name}`}
                 >
                   <IconCopy size={18} />
@@ -200,6 +294,52 @@ export function StickerDetailPage() {
               )}
             </div>
 
+{/* Custom Sticker Tint: Padrão + Color Picker */}
+            <div className="mt-2.5 flex items-center justify-center gap-2.5">
+              <span className="text-[11px] text-[#9A8978]">Cor da figura:</span>
+
+              {/* Opção Cor Original / Padrão */}
+              <button
+                type="button"
+                onClick={() => setStickerColor(null)}
+                title="Cor original da figurinha"
+                className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition duration-200 ${
+                  stickerColor === null
+                    ? 'border-[#DFB992] bg-[#1E1A17] text-[#DFB992] ring-1 ring-[#DFB992]/40 shadow-sm'
+                    : 'border-[#DFB992]/25 bg-[#141210] text-[#9A8978] hover:border-[#DFB992]/50 hover:text-[#E6D5C3]'
+                }`}
+              >
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-[#DFB992]/30 bg-gradient-to-tr from-[#C2A385] to-[#DFB992] text-[9px] text-[#120F0D]">
+                  ✦
+                </span>
+                <span>Padrão</span>
+              </button>
+
+              {/* Opção Color Picker da Figurinha */}
+              <label
+                title="Escolher cor personalizada para a figurinha"
+                className={`relative flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition duration-200 ${
+                  stickerColor !== null
+                    ? 'border-[#DFB992] bg-[#1E1A17] text-[#DFB992] ring-1 ring-[#DFB992]/40 shadow-sm'
+                    : 'border-[#DFB992]/25 bg-[#141210] text-[#9A8978] hover:border-[#DFB992]/50 hover:text-[#E6D5C3]'
+                }`}
+              >
+                <span
+                  className="h-4 w-4 shrink-0 rounded-full border border-[#DFB992]/40 shadow-inner"
+                  style={{ backgroundColor: stickerColor || '#FFFFFF' }}
+                />
+                <span>Cor</span>
+                <input
+                  type="color"
+                  value={stickerColor || '#FFFFFF'}
+                  onChange={(e) => {
+                    setStickerColor(e.target.value);
+                  }}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  aria-label="Escolher cor personalizada da figurinha"
+                />
+              </label>
+            </div>
             {/* Background test switcher: Default Transparent + Color Picker */}
             <div className="mt-3.5 flex items-center justify-center gap-2.5">
               <span className="text-[11px] text-[#9A8978]">Fundo de teste:</span>
@@ -301,12 +441,18 @@ export function StickerDetailPage() {
               <div className="mt-8">
                 <button
                   type="button"
-                  onClick={() => copy(sticker)}
-                  disabled={busy === `copy:${sticker.id}`}
+                  onClick={handleCopy}
+                  disabled={busy === `copy:${sticker.id}` || copyBusy || recoloring}
                   className="btn-primary min-h-[48px] w-full rounded-2xl text-sm"
                 >
                   <IconCopy size={18} />
-                  <span>Copiar para colar nos Stories</span>
+                  <span>
+                    {recoloring
+                      ? 'Processando cor...'
+                      : stickerColor
+                        ? 'Copiar com a cor personalizada'
+                        : 'Copiar para colar nos Stories'}
+                  </span>
                 </button>
               </div>
             )}

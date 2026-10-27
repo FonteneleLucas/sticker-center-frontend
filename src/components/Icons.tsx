@@ -198,6 +198,12 @@ export const IconChevronLeft = (p: IconProps) => (
     <path d="m15 18-6-6 6-6" />
   </svg>
 );
+export const IconCompass = ({ filled, ...p }: IconProps & { filled?: boolean }) => (
+  <svg {...base(p)} fill={filled ? 'currentColor' : 'none'}>
+    <circle cx="12" cy="12" r="10" />
+    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+  </svg>
+);
 export const IconChevronRight = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="m9 18 6-6-6-6" />

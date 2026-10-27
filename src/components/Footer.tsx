@@ -17,9 +17,15 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-5 text-xs">
+        <div className="hidden flex-wrap items-center justify-center gap-5 text-xs md:flex">
           <Link to="/" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
-            Catálogo
+            Início
+          </Link>
+          <Link to="/explorar" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
+            Explorar
+          </Link>
+          <Link to="/novidades" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
+            Novidades
           </Link>
           <Link to="/favoritos" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
             Favoritos

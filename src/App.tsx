@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from './components/Toast';
 import { HomePage } from './pages/HomePage';
+import { ExplorePage } from './pages/ExplorePage';
+import { NovidadesPage } from './pages/NovidadesPage';
 import { SearchPage } from './pages/SearchPage';
 import { FavoritesPage } from './pages/FavoritesPage';
 import { StickerDetailPage } from './pages/StickerDetailPage';
@@ -12,6 +14,8 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/explorar" element={<ExplorePage />} />
+          <Route path="/novidades" element={<NovidadesPage />} />
           <Route path="/busca" element={<SearchPage />} />
           <Route path="/favoritos" element={<FavoritesPage />} />
           <Route path="/sticker/:slug" element={<StickerDetailPage />} />

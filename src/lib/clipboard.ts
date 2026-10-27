@@ -116,6 +116,42 @@ export async function copyImageFromUrl(url: string): Promise<CopyResult> {
   }
 }
 
+/**
+ * Copies a PNG blob directly to the clipboard.
+ */
+export async function copyBlobToClipboard(blob: Blob): Promise<CopyResult> {
+  if (typeof window === 'undefined' || !navigator.clipboard || typeof navigator.clipboard.write !== 'function') {
+    return {
+      ok: false,
+      reason: 'unsupported',
+      message: `Seu navegador não suporta cópia direta de imagens. ${DOWNLOAD_HINT}`,
+    };
+  }
+
+  try {
+    if (typeof ClipboardItem !== 'undefined') {
+      try {
+        const item = new ClipboardItem({ 'image/png': blob });
+        await navigator.clipboard.write([item]);
+        return { ok: true };
+      } catch (safariErr: any) {
+        const item = new ClipboardItem({ 'image/png': Promise.resolve(blob) });
+        await navigator.clipboard.write([item]);
+        return { ok: true };
+      }
+    } else {
+      return {
+        ok: false,
+        reason: 'unsupported',
+        message: `ClipboardItem indisponível no navegador. ${DOWNLOAD_HINT}`,
+      };
+    }
+  } catch (err: any) {
+    return classify(err);
+  }
+}
+
+
 
 
 /** Copies plain text (used for "copiar link"), with a legacy fallback. */

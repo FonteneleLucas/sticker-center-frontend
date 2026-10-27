@@ -2,9 +2,11 @@ import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   BrandEmblem,
+  IconCompass,
   IconHeart,
   IconHome,
   IconSearch,
+  IconSparkles,
 } from './Icons';
 import { useFavorites } from '../lib/favorites';
 
@@ -103,32 +105,52 @@ export function Header({
         )}
       </header>
 
-      {/* Mobile Bottom Navigation Bar */}
+      {/* Mobile Bottom Navigation Bar: Inicio | Explorar | Favoritos | Novidades */}
       <nav
         aria-label="Navegação principal mobile"
-        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#DFB992]/15 bg-[#0C0A09]/95 px-2 py-2 backdrop-blur-lg md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#DFB992]/15 bg-[#0C0A09]/95 px-1 py-1.5 backdrop-blur-lg md:hidden"
       >
         <Link
           to="/"
-          className={`flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium transition ${
+          className={`flex flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[10px] font-medium transition ${
             isActive('/') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
           }`}
         >
-          <IconHome size={20} />
+          <IconHome size={20} filled={isActive('/')} />
           <span>Início</span>
         </Link>
 
         <Link
+          to="/explorar"
+          className={`flex flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[10px] font-medium transition ${
+            isActive('/explorar') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
+          }`}
+        >
+          <IconCompass size={20} filled={isActive('/explorar')} />
+          <span>Explorar</span>
+        </Link>
+
+        <Link
           to="/favoritos"
-          className={`relative flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium transition ${
+          className={`relative flex flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[10px] font-medium transition ${
             isActive('/favoritos') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
           }`}
         >
           <IconHeart size={20} filled={isActive('/favoritos')} />
           <span>Favoritos</span>
           {favs.length > 0 && (
-            <span className="absolute right-2 top-0.5 h-2 w-2 rounded-full bg-[#DFB992]" />
+            <span className="absolute right-3 top-0.5 h-2 w-2 rounded-full bg-[#DFB992]" />
           )}
+        </Link>
+
+        <Link
+          to="/novidades"
+          className={`flex flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[10px] font-medium transition ${
+            isActive('/novidades') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
+          }`}
+        >
+          <IconSparkles size={20} />
+          <span>Novidades</span>
         </Link>
       </nav>
     </>
