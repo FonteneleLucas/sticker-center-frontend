@@ -119,7 +119,7 @@ export async function copyImageFromUrl(url: string): Promise<CopyResult> {
 /**
  * Copies a PNG blob directly to the clipboard.
  */
-export async function copyBlobToClipboard(blob: Blob): Promise<CopyResult> {
+export async function copyBlobToClipboard(blobOrPromise: Blob | Promise<Blob>): Promise<CopyResult> {
   if (typeof window === 'undefined' || !navigator.clipboard || typeof navigator.clipboard.write !== 'function') {
     return {
       ok: false,
@@ -130,12 +130,14 @@ export async function copyBlobToClipboard(blob: Blob): Promise<CopyResult> {
 
   try {
     if (typeof ClipboardItem !== 'undefined') {
+      const promise = Promise.resolve(blobOrPromise);
       try {
-        const item = new ClipboardItem({ 'image/png': blob });
+        const item = new ClipboardItem({ 'image/png': promise });
         await navigator.clipboard.write([item]);
         return { ok: true };
       } catch (safariErr: any) {
-        const item = new ClipboardItem({ 'image/png': Promise.resolve(blob) });
+        const resolvedBlob = await promise;
+        const item = new ClipboardItem({ 'image/png': resolvedBlob });
         await navigator.clipboard.write([item]);
         return { ok: true };
       }

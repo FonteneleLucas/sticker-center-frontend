@@ -24,7 +24,7 @@ export function useStickerActions() {
       setBusy(null);
       if (result.ok) {
         trackEvent(s.id, 'copy');
-        toast.success('Sticker copiado! Cole em um app compatível.');
+        toast.success('Sticker copiado!');
         return true;
       }
 

@@ -14,25 +14,15 @@ import { WatermarkOverlay } from './WatermarkOverlay';
  * - Deep obsidian charcoal (#1C1917)
  * - Rich warm mocha (#4A3A2E)
  */
-const CARD_TONES = [
-  'bg-[#E5CEB8] text-[#1A1614]',
-  'bg-[#C2A385] text-[#1A1614]',
-  'bg-[#1C1917] text-[#F5EDE4]',
-  'bg-[#4A3A2E] text-[#F5EDE4]',
-];
-
-function getCardToneClass(seed: string): string {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-  }
-  return CARD_TONES[hash % CARD_TONES.length];
-}
-
-export const StickerCard = memo(function StickerCard({ sticker }: { sticker: Sticker }) {
+export const StickerCard = memo(function StickerCard({
+  sticker,
+  bgClass = 'bg-black text-[#F5EDE4]',
+}: {
+  sticker: Sticker;
+  bgClass?: string;
+}) {
   const { copy, toggleFavorite, busy } = useStickerActions();
   const fav = useIsFavorite(sticker.id);
-  const toneClass = getCardToneClass(sticker.id || sticker.slug);
   const isPremium = Boolean(sticker.is_premium);
 
   return (
@@ -40,8 +30,8 @@ export const StickerCard = memo(function StickerCard({ sticker }: { sticker: Sti
       className="group relative flex flex-col overflow-hidden rounded-2xl border border-[#DFB992]/20 bg-[#141210] shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-[#DFB992]/45 hover:shadow-glow select-none"
       onContextMenu={isPremium ? (e) => e.preventDefault() : undefined}
     >
-      {/* Vertical Story-proportioned preview card matching the reference screens */}
-      <div className={`relative aspect-[3/4] w-full overflow-hidden ${toneClass}`}>
+      {/* Vertical Story-proportioned preview card */}
+      <div className={`relative aspect-[3/4] w-full overflow-hidden ${bgClass}`}>
         <Link
           to={`/sticker/${sticker.slug}`}
           className="flex h-full w-full items-center justify-center p-3 sm:p-4 focus-visible:outline-offset-[-3px]"

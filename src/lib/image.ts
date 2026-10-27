@@ -77,18 +77,26 @@ export async function downloadSticker(url: string, slug: string, variant: 'origi
   downloadBlob(blob, stickerFilename(slug, variant));
 }
 
-export function recolorImageElement(img: HTMLImageElement, color: string): Promise<Blob> {
-  const canvas = document.createElement('canvas');
-  canvas.width = img.naturalWidth || img.width;
-  canvas.height = img.naturalHeight || img.height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas 2D indisponível');
+export function recolorImageElement(
+  img: CanvasImageSource,
+  color: string,
+  width?: number,
+  height?: number
+): Promise<Blob> {
+  const w = width || (img as HTMLImageElement).naturalWidth || (img as any).width || 512;
+  const h = height || (img as HTMLImageElement).naturalHeight || (img as any).height || 512;
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0);
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return Promise.reject(new Error('Canvas 2D indisponível'));
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
   ctx.globalCompositeOperation = 'source-in';
   ctx.fillStyle = color;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, w, h);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((b) => {
@@ -102,27 +110,57 @@ export function recolorImageElement(img: HTMLImageElement, color: string): Promi
  * Recolors a sticker image preserving transparent alpha channel.
  * Uses source-in composition to replace non-transparent pixels with the chosen color.
  */
-export async function recolorStickerBlob(imageUrl: string, color: string): Promise<Blob> {
-  const fullUrl = mediaUrl(imageUrl);
-  let blob: Blob;
-  try {
-    const res = await fetch(fullUrl, { mode: 'cors', credentials: 'omit' });
-    if (res.ok) {
-      blob = await res.blob();
-    } else {
-      throw new Error(`HTTP ${res.status}`);
+export async function recolorStickerBlob(
+  imageUrl: string,
+  color: string,
+  cachedElement?: HTMLImageElement | null
+): Promise<Blob> {
+  // 1. If an image element is already rendered and complete in the DOM, use it directly (0ms latency)
+  if (
+    cachedElement &&
+    cachedElement.complete &&
+    cachedElement.naturalWidth > 0 &&
+    cachedElement.naturalHeight > 0
+  ) {
+    try {
+      return await recolorImageElement(cachedElement, color, cachedElement.naturalWidth, cachedElement.naturalHeight);
+    } catch (domErr) {
+      console.warn('Recolor from DOM element failed, falling back to fetch:', domErr);
     }
-  } catch {
-    const img = await loadImage(fullUrl, true);
-    return recolorImageElement(img, color);
   }
 
-  const objectUrl = URL.createObjectURL(blob);
+  const fullUrl = mediaUrl(imageUrl);
+  // Bypass any non-CORS cached response in browser disk cache
+  const corsUrl = fullUrl.startsWith('http')
+    ? (fullUrl.includes('?') ? `${fullUrl}&cors=1` : `${fullUrl}?cors=1`)
+    : fullUrl;
+
   try {
-    const img = await loadImage(objectUrl, false);
-    return await recolorImageElement(img, color);
-  } finally {
-    URL.revokeObjectURL(objectUrl);
+    const res = await fetch(corsUrl, { mode: 'cors', credentials: 'omit' });
+    if (res.ok) {
+      const blob = await res.blob();
+      if (typeof createImageBitmap === 'function') {
+        const bmp = await createImageBitmap(blob);
+        try {
+          return await recolorImageElement(bmp, color, bmp.width, bmp.height);
+        } finally {
+          bmp.close();
+        }
+      }
+      const objectUrl = URL.createObjectURL(blob);
+      try {
+        const img = await loadImage(objectUrl, false);
+        return await recolorImageElement(img, color);
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 15_000);
+      }
+    }
+  } catch (fetchErr) {
+    console.warn('Fetch with CORS failed, attempting Image crossOrigin:', fetchErr);
   }
+
+  // 3. Fallback: load via new Image() with crossOrigin = 'anonymous'
+  const img = await loadImage(corsUrl, true);
+  return await recolorImageElement(img, color);
 }
 

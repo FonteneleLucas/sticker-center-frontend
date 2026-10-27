@@ -36,6 +36,7 @@ export function HomePage() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cardBg, setCardBg] = useState<'black' | 'transparent' | 'white'>('black');
 
   // Load categories
   useEffect(() => {
@@ -469,11 +470,57 @@ export function HomePage() {
 
             {/* Catalog Control Bar */}
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[#DFB992]/15 pb-3">
-              <span className="text-xs font-medium text-[#9A8978]">
-                {stickersPage
-                  ? `${stickersPage.total} ${stickersPage.total === 1 ? 'figurinha disponível' : 'figurinhas disponíveis'}`
-                  : 'Carregando figurinhas...'}
-              </span>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-medium text-[#9A8978]">
+                  {stickersPage
+                    ? `${stickersPage.total} ${stickersPage.total === 1 ? 'figurinha disponível' : 'figurinhas disponíveis'}`
+                    : 'Carregando figurinhas...'}
+                </span>
+
+                {/* Seletor de fundo do card: Preto (padrão) | Transparente | Branco */}
+                <div className="flex items-center gap-1 rounded-full border border-[#DFB992]/20 bg-[#151210] p-0.5 text-[11px]">
+                  <span className="pl-2 pr-1 text-[10px] text-[#8E7F70]">Fundo:</span>
+                  <button
+                    type="button"
+                    onClick={() => setCardBg('black')}
+                    title="Fundo preto (padrão)"
+                    className={`flex items-center gap-1 rounded-full px-2 py-0.5 transition ${
+                      cardBg === 'black'
+                        ? 'border border-[#DFB992]/60 bg-[#25201C] font-semibold text-[#DFB992]'
+                        : 'text-[#A8988B] hover:text-[#E6D5C3]'
+                    }`}
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full bg-black border border-[#DFB992]/40" />
+                    <span>Preto</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCardBg('transparent')}
+                    title="Fundo transparente"
+                    className={`flex items-center gap-1 rounded-full px-2 py-0.5 transition ${
+                      cardBg === 'transparent'
+                        ? 'border border-[#DFB992]/60 bg-[#25201C] font-semibold text-[#DFB992]'
+                        : 'text-[#A8988B] hover:text-[#E6D5C3]'
+                    }`}
+                  >
+                    <span className="checkerboard h-2.5 w-2.5 rounded-full border border-[#DFB992]/40" />
+                    <span>Transparente</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCardBg('white')}
+                    title="Fundo branco"
+                    className={`flex items-center gap-1 rounded-full px-2 py-0.5 transition ${
+                      cardBg === 'white'
+                        ? 'border border-[#DFB992]/60 bg-[#25201C] font-semibold text-[#DFB992]'
+                        : 'text-[#A8988B] hover:text-[#E6D5C3]'
+                    }`}
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full bg-white border border-[#DFB992]/40" />
+                    <span>Branco</span>
+                  </button>
+                </div>
+              </div>
 
               <div className="flex items-center gap-2">
                 <label htmlFor="sort-select" className="text-xs font-medium text-[#9A8978]">
@@ -507,7 +554,17 @@ export function HomePage() {
               <>
                 <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
                   {stickersPage?.items.map((s) => (
-                    <StickerCard key={s.id} sticker={s} />
+                    <StickerCard
+                      key={s.id}
+                      sticker={s}
+                      bgClass={
+                        cardBg === 'transparent'
+                          ? 'checkerboard text-[#F5EDE4]'
+                          : cardBg === 'white'
+                            ? 'bg-white text-[#1A1614]'
+                            : 'bg-black text-[#F5EDE4]'
+                      }
+                    />
                   ))}
                 </div>
 
