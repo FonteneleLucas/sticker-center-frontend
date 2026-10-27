@@ -1,4 +1,10 @@
 [[redirects]]
+  from = "/api/*"
+  to = "https://sticker-center-backend-git-974482867718.us-east4.run.app/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

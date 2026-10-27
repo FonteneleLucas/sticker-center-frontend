@@ -5,6 +5,7 @@ import { Footer } from '../components/Footer';
 import { StickerCard } from '../components/StickerCard';
 import { EmptyState, ErrorState, SkeletonGrid, Spinner } from '../components/States';
 import { api, mediaUrl } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import { useDocumentMeta } from '../lib/seo';
 import type { Category, Page, Sticker, SortOption } from '../lib/types';
 import {
@@ -24,6 +25,12 @@ export function HomePage() {
   );
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user, refresh } = useAuth();
+
+  // Ao carregar a Home, dispara o sync para reconhecer pagamentos mesmo que o usuário não tenha clicado em voltar
+  useEffect(() => {
+    refresh(true).catch(() => {});
+  }, [refresh]);
 
   const activeCategory = searchParams.get('categoria') || '';
   const activeFolder = searchParams.get('pasta') || '';
@@ -97,7 +104,7 @@ export function HomePage() {
     return () => {
       ignore = true;
     };
-  }, [activeCategory, activeFolder, currentSort]);
+  }, [activeCategory, activeFolder, currentSort, user?.is_premium]);
 
   const loadMore = async () => {
     if (!stickersPage || stickersPage.page >= stickersPage.pages || loadingMore) return;

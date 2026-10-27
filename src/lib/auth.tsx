@@ -101,12 +101,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (userToken.get()) {
       const cached = getCachedUser();
-      if (!cached) {
-        // Sessão ativa e sem informação em cache (ex: na home page): chama o sync imediatamente!
-        setLoading(true);
+      // Se não há cache OU se o usuário ainda não está com status premium ativo:
+      // Sempre executa o sync com o Mercado Pago para reconhecer pagamentos feitos mesmo que o usuário não tenha clicado em voltar
+      if (!cached || !cached.is_premium) {
+        setLoading(!cached);
         refresh(true).finally(() => setLoading(false));
       } else {
         setLoading(false);
+        // Se já está com cache premium válido, roda uma verificação em background sem bloquear a UI
+        refresh(true).catch(() => {});
       }
     } else {
       setLoading(false);
