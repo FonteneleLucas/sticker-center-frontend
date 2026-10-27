@@ -17,7 +17,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="hidden flex-wrap items-center justify-center gap-5 text-xs md:flex">
+        <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
           <Link to="/" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
             Início
           </Link>
@@ -29,6 +29,13 @@ export function Footer() {
           </Link>
           <Link to="/favoritos" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
             Favoritos
+          </Link>
+          <span className="text-[#DFB992]/30">|</span>
+          <Link to="/privacidade" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
+            Privacidade
+          </Link>
+          <Link to="/termos" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
+            Termos de Uso
           </Link>
         </div>
       </div>

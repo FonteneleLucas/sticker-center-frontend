@@ -237,7 +237,7 @@ export function HomePage() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Busque figurinhas..."
-                      className="w-full rounded-full border border-[#DFB992]/30 bg-[#151210]/95 py-3 pl-11 pr-4 text-xs text-[#F5EDE4] placeholder:text-[#8E7F70] shadow-inner focus:border-[#DFB992] focus:outline-none focus:ring-1 focus:ring-[#DFB992] sm:text-sm"
+                      className="w-full rounded-full border border-[#DFB992]/30 bg-[#151210]/95 py-3 pl-11 pr-4 text-base text-[#F5EDE4] placeholder:text-[#8E7F70] shadow-inner focus:border-[#DFB992] focus:outline-none focus:ring-1 focus:ring-[#DFB992] sm:text-sm"
                     />
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[#DFB992]">
                       <IconSearch size={18} />
@@ -532,7 +532,7 @@ export function HomePage() {
                   id="sort-select"
                   value={currentSort}
                   onChange={(e) => handleSortChange(e.target.value as SortOption)}
-                  className="rounded-full border border-[#DFB992]/25 bg-[#151210] px-3 py-1 text-xs font-medium text-[#E6D5C3] focus:border-[#DFB992] focus:outline-none"
+                  className="rounded-full border border-[#DFB992]/25 bg-[#151210] px-3 py-1 text-base sm:text-xs font-medium text-[#E6D5C3] focus:border-[#DFB992] focus:outline-none"
                 >
                   <option value="popular">Mais populares</option>
                   <option value="newest">Mais recentes</option>

@@ -85,6 +85,12 @@ export function LoginPage() {
             Criar conta
           </Link>
         </p>
+
+        <p className="mt-2 text-center text-[11px] text-[#8E7F70]">
+          Ao entrar, você concorda com nossos{' '}
+          <Link to="/termos" className="text-[#DFB992] underline">Termos de Uso</Link> e nossa{' '}
+          <Link to="/privacidade" className="text-[#DFB992] underline">Política de Privacidade</Link>.
+        </p>
       </div>
     </Shell>
   );
@@ -155,6 +161,12 @@ export function RegisterPage() {
           <Link className="text-[#DFB992] underline" to={`/entrar?redirect=${encodeURIComponent(redirect)}`}>
             Entrar
           </Link>
+        </p>
+
+        <p className="mt-2 text-center text-[11px] text-[#8E7F70]">
+          Ao criar sua conta, você concorda com nossos{' '}
+          <Link to="/termos" className="text-[#DFB992] underline">Termos de Uso</Link> e nossa{' '}
+          <Link to="/privacidade" className="text-[#DFB992] underline">Política de Privacidade</Link>.
         </p>
       </div>
     </Shell>

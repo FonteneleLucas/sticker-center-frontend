@@ -116,7 +116,7 @@ export function SearchPage() {
               id="sort-search"
               value={currentSort}
               onChange={(e) => handleSortChange(e.target.value as SortOption)}
-              className="rounded-full border border-[#DFB992]/25 bg-[#151210] px-3 py-1 text-xs font-medium text-[#E6D5C3] focus:border-[#DFB992] focus:outline-none"
+              className="rounded-full border border-[#DFB992]/25 bg-[#151210] px-3 py-1 text-base sm:text-xs font-medium text-[#E6D5C3] focus:border-[#DFB992] focus:outline-none"
             >
               <option value="relevance">Mais relevantes</option>
               <option value="popular">Mais populares</option>

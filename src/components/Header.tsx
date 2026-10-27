@@ -123,7 +123,7 @@ export function Header({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Busque figurinhas..."
-                className="w-full rounded-full border border-[#DFB992]/25 bg-[#151210] py-2 pl-9 pr-4 text-xs text-[#F5EDE4] placeholder:text-[#8E7F70] focus:border-[#DFB992] focus:outline-none"
+                className="w-full rounded-full border border-[#DFB992]/25 bg-[#151210] py-2 pl-9 pr-4 text-base sm:text-xs text-[#F5EDE4] placeholder:text-[#8E7F70] focus:border-[#DFB992] focus:outline-none"
               />
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#DFB992]/80">
                 <IconSearch size={15} />

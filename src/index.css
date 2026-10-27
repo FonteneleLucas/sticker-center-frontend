@@ -5,6 +5,7 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
     background-color: #090807;
     color: #F5EFEA;
   }
@@ -12,6 +13,14 @@
     outline: 2px solid #DFB992;
     outline-offset: 2px;
     border-radius: 8px;
+  }
+  /* Previne zoom automático do iOS Safari ao focar inputs, selects e textareas */
+  @media screen and (max-width: 768px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
   }
   body {
     min-height: 100dvh;

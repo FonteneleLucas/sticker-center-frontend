@@ -9,6 +9,7 @@ import { StickerDetailPage } from './pages/StickerDetailPage';
 import { AdminPage } from './pages/AdminPage';
 import { LoginPage, RegisterPage } from './pages/AuthPages';
 import { PremiumPage, SubscriptionReturnPage } from './pages/PremiumPage';
+import { PrivacyPolicyPage, TermsOfServicePage } from './pages/LegalPages';
 import { AuthProvider } from './lib/auth';
 
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
@@ -30,6 +31,10 @@ export function App() {
           <Route path="/assinar" element={<PremiumPage />} />
           <Route path="/perfil" element={<SubscriptionReturnPage />} />
           <Route path="/assinatura/retorno" element={<SubscriptionReturnPage />} />
+          <Route path="/privacidade" element={<PrivacyPolicyPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/termos" element={<TermsOfServicePage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
           <Route path="/admin" element={<AdminPage />} />
           {/* Fallback route */}
           <Route path="*" element={<Navigate to="/" replace />} />
