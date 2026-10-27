@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { GoogleAuthButton } from '../components/GoogleAuthButton';
 import { useAuth } from '../lib/auth';
 import { useDocumentMeta } from '../lib/seo';
 
@@ -50,26 +51,41 @@ export function LoginPage() {
 
   return (
     <Shell title="Entrar" subtitle="Acesse sua conta para gerenciar sua assinatura Premium.">
-      <form onSubmit={submit} className="space-y-4">
-        <div>
-          <label className="label">E-mail</label>
-          <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+      <div className="space-y-4">
+        <GoogleAuthButton
+          text="signin_with"
+          onSuccess={() => navigate(redirect, { replace: true })}
+          onError={(msg) => setError(msg)}
+        />
+
+        <div className="relative my-4 flex items-center justify-center">
+          <div className="w-full border-t border-[#DFB992]/15" />
+          <span className="bg-[#151210] px-3 text-xs uppercase tracking-wider text-[#8E7F70]">ou</span>
+          <div className="w-full border-t border-[#DFB992]/15" />
         </div>
-        <div>
-          <label className="label">Senha</label>
-          <input className="input" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
-        </div>
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        <button className="btn-primary w-full" disabled={busy}>
-          {busy ? 'Entrando…' : 'Entrar'}
-        </button>
-      </form>
-      <p className="mt-4 text-center text-sm text-[#8E7F70]">
-        Não tem conta?{' '}
-        <Link className="text-[#DFB992] underline" to={`/criar-conta?redirect=${encodeURIComponent(redirect)}`}>
-          Criar conta
-        </Link>
-      </p>
+
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="label">E-mail</label>
+            <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+          </div>
+          <div>
+            <label className="label">Senha</label>
+            <input className="input" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+          </div>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <button className="btn-primary w-full" disabled={busy}>
+            {busy ? 'Entrando…' : 'Entrar'}
+          </button>
+        </form>
+
+        <p className="mt-4 text-center text-sm text-[#8E7F70]">
+          Não tem conta?{' '}
+          <Link className="text-[#DFB992] underline" to={`/criar-conta?redirect=${encodeURIComponent(redirect)}`}>
+            Criar conta
+          </Link>
+        </p>
+      </div>
     </Shell>
   );
 }
@@ -91,7 +107,6 @@ export function RegisterPage() {
     setError('');
     try {
       await register(email, password, name);
-      // Após criar a conta, segue para o pagamento
       navigate('/assinar', { replace: true });
     } catch (err: any) {
       setError(err.message || 'Falha ao criar conta.');
@@ -103,30 +118,46 @@ export function RegisterPage() {
   const redirect = safeRedirect(params.get('redirect'), '/');
   return (
     <Shell title="Criar conta" subtitle="Depois do cadastro você escolhe seu plano e vai para o pagamento.">
-      <form onSubmit={submit} className="space-y-4">
-        <div>
-          <label className="label">Nome</label>
-          <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+      <div className="space-y-4">
+        <GoogleAuthButton
+          text="signup_with"
+          onSuccess={() => navigate('/assinar', { replace: true })}
+          onError={(msg) => setError(msg)}
+        />
+
+        <div className="relative my-4 flex items-center justify-center">
+          <div className="w-full border-t border-[#DFB992]/15" />
+          <span className="bg-[#151210] px-3 text-xs uppercase tracking-wider text-[#8E7F70]">ou</span>
+          <div className="w-full border-t border-[#DFB992]/15" />
         </div>
-        <div>
-          <label className="label">E-mail</label>
-          <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-        </div>
-        <div>
-          <label className="label">Senha (mín. 8 caracteres)</label>
-          <input className="input" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
-        </div>
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        <button className="btn-primary w-full" disabled={busy}>
-          {busy ? 'Criando…' : 'Criar conta e continuar'}
-        </button>
-      </form>
-      <p className="mt-4 text-center text-sm text-[#8E7F70]">
-        Já tem conta?{' '}
-        <Link className="text-[#DFB992] underline" to={`/entrar?redirect=${encodeURIComponent(redirect)}`}>
-          Entrar
-        </Link>
-      </p>
+
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="label">Nome</label>
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+          </div>
+          <div>
+            <label className="label">E-mail</label>
+            <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+          </div>
+          <div>
+            <label className="label">Senha (mín. 8 caracteres)</label>
+            <input className="input" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+          </div>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <button className="btn-primary w-full" disabled={busy}>
+            {busy ? 'Criando…' : 'Criar conta e continuar'}
+          </button>
+        </form>
+
+        <p className="mt-4 text-center text-sm text-[#8E7F70]">
+          Já tem conta?{' '}
+          <Link className="text-[#DFB992] underline" to={`/entrar?redirect=${encodeURIComponent(redirect)}`}>
+            Entrar
+          </Link>
+        </p>
+      </div>
     </Shell>
   );
 }
+

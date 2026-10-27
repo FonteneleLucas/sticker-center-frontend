@@ -12,6 +12,7 @@ export function AdminBillingTab() {
   const [settings, setSettings] = useState<BillingSettings | null>(null);
   const [monthlyPrice, setMonthlyPrice] = useState<string>('');
   const [annualPrice, setAnnualPrice] = useState<string>('');
+  const [googleClientId, setGoogleClientId] = useState<string>('');
   const [savingSettings, setSavingSettings] = useState(false);
 
   // 2. Users state
@@ -43,6 +44,7 @@ export function AdminBillingTab() {
       setSettings(data);
       setMonthlyPrice(String(data.monthly_price));
       setAnnualPrice(String(data.annual_price));
+      setGoogleClientId(data.google_client_id || '');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao carregar configurações de preços.');
     }
@@ -85,20 +87,20 @@ export function AdminBillingTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Save Pricing Settings
+  // Save Pricing & Integration Settings
   const handleSaveSettings = async (e: FormEvent) => {
     e.preventDefault();
     const m = parseFloat(monthlyPrice.replace(',', '.'));
     const a = parseFloat(annualPrice.replace(',', '.'));
     if (isNaN(m) || m <= 0 || isNaN(a) || a <= 0) {
-      toast.error('Informe valores válidos maiores que zero.');
+      toast.error('Informe valores válidos maiores que zero para os planos.');
       return;
     }
     setSavingSettings(true);
     try {
-      const updated = await api.admin.saveBillingSettings(m, a);
+      const updated = await api.admin.saveBillingSettings(m, a, googleClientId.trim() || null);
       setSettings(updated);
-      toast.success('Preços atualizados com sucesso!');
+      toast.success('Configurações atualizadas com sucesso!');
     } catch (err: any) {
       toast.error(err.message || 'Falha ao salvar configurações.');
     } finally {
@@ -234,40 +236,66 @@ export function AdminBillingTab() {
               >
                 {settings.webhook_secret_configured ? '● Webhook Seguro' : '○ Webhook Secret Ausente'}
               </span>
+              <span
+                className={`rounded-full px-2.5 py-1 font-semibold ${
+                  settings.google_client_id
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                }`}
+              >
+                {settings.google_client_id ? '● Login Google Ativo' : '○ Google Client ID Ausente'}
+              </span>
             </div>
           )}
         </div>
 
-        <form onSubmit={handleSaveSettings} className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-end">
+        <form onSubmit={handleSaveSettings} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label">Plano Mensal (R$)</label>
+              <input
+                type="text"
+                value={monthlyPrice}
+                onChange={(e) => setMonthlyPrice(e.target.value)}
+                className="input"
+                placeholder="ex: 19.90"
+                required
+              />
+            </div>
+            <div>
+              <label className="label">Plano Anual (R$)</label>
+              <input
+                type="text"
+                value={annualPrice}
+                onChange={(e) => setAnnualPrice(e.target.value)}
+                className="input"
+                placeholder="ex: 199.00"
+                required
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="label">Plano Mensal (R$)</label>
+            <label className="label">
+              Google OAuth Client ID{' '}
+              <span className="font-normal text-[#9A8978]">(obtido no Google Cloud Console)</span>
+            </label>
             <input
               type="text"
-              value={monthlyPrice}
-              onChange={(e) => setMonthlyPrice(e.target.value)}
-              className="input"
-              placeholder="ex: 19.90"
-              required
+              value={googleClientId}
+              onChange={(e) => setGoogleClientId(e.target.value)}
+              className="input font-mono text-xs"
+              placeholder="ex: 123456789-abcdef.apps.googleusercontent.com"
             />
           </div>
-          <div>
-            <label className="label">Plano Anual (R$)</label>
-            <input
-              type="text"
-              value={annualPrice}
-              onChange={(e) => setAnnualPrice(e.target.value)}
-              className="input"
-              placeholder="ex: 199.00"
-              required
-            />
-          </div>
-          <div>
+
+          <div className="flex justify-end pt-2">
             <button
               type="submit"
               disabled={savingSettings}
-              className="btn-primary w-full rounded-xl py-2.5 font-medium"
+              className="btn-primary rounded-xl px-6 py-2.5 font-medium"
             >
-              {savingSettings ? 'Salvando...' : 'Atualizar Preços'}
+              {savingSettings ? 'Salvando...' : 'Salvar Configurações'}
             </button>
           </div>
         </form>

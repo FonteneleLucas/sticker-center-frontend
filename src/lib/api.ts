@@ -80,6 +80,7 @@ export interface BillingSettings {
   annual_price: number;
   payments_enabled: boolean;
   webhook_secret_configured: boolean;
+  google_client_id?: string | null;
 }
 
 export interface AdminUserRow {
@@ -180,6 +181,12 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       }),
+    googleLogin: (credential: string) =>
+      request<{ access_token: string; user: AuthUser }>('/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ credential }),
+      }),
+    googleClientId: () => request<{ client_id: string | null }>('/auth/google/client-id'),
     me: () => request<AuthUser>('/auth/me'),
   },
   billing: {
@@ -209,10 +216,10 @@ export const api = {
 
   admin: {
     billingSettings: () => request<BillingSettings>('/admin/billing/settings', { auth: true }),
-    saveBillingSettings: (monthly_price: number, annual_price: number) =>
+    saveBillingSettings: (monthly_price: number, annual_price: number, google_client_id?: string | null) =>
       request<BillingSettings>('/admin/billing/settings', {
         method: 'PUT',
-        body: JSON.stringify({ monthly_price, annual_price }),
+        body: JSON.stringify({ monthly_price, annual_price, google_client_id }),
         auth: true,
       }),
     users: (p: { q?: string; premium?: boolean; page?: number }) =>

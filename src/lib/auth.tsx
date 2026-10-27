@@ -40,6 +40,7 @@ interface AuthCtx {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
+  loginWithGoogle: (credential: string) => Promise<AuthUser>;
   register: (email: string, password: string, name?: string) => Promise<AuthUser>;
   logout: () => void;
   refresh: (forceSync?: boolean) => Promise<AuthUser | null>;
@@ -135,6 +136,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refresh,
       login: async (email, password) => {
         const res = await api.auth.login(email, password);
+        userToken.set(res.access_token);
+        setUser(res.user);
+        return res.user;
+      },
+      loginWithGoogle: async (credential: string) => {
+        const res = await api.auth.googleLogin(credential);
         userToken.set(res.access_token);
         setUser(res.user);
         return res.user;
