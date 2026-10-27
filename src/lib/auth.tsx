@@ -1,40 +1,116 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, userToken, type AuthUser } from './api';
 
+const CACHE_KEY = 'stickerhub:user-cache';
+const CACHE_TTL_MS = 60 * 1000; // 60 segundos de validade do cache
+
+interface CachedUser {
+  user: AuthUser;
+  timestamp: number;
+}
+
+function getCachedUser(): AuthUser | null {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const item: CachedUser = JSON.parse(raw);
+    if (Date.now() - item.timestamp < CACHE_TTL_MS) {
+      return item.user;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function setCachedUser(u: AuthUser | null) {
+  try {
+    if (!u) {
+      sessionStorage.removeItem(CACHE_KEY);
+    } else {
+      const item: CachedUser = { user: u, timestamp: Date.now() };
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify(item));
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 interface AuthCtx {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (email: string, password: string, name?: string) => Promise<AuthUser>;
   logout: () => void;
-  refresh: () => Promise<AuthUser | null>;
+  refresh: (forceSync?: boolean) => Promise<AuthUser | null>;
   setUser: (u: AuthUser | null) => void;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState<boolean>(Boolean(userToken.get()));
+  const [user, setUserState] = useState<AuthUser | null>(() => {
+    return userToken.get() ? getCachedUser() : null;
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    return Boolean(userToken.get() && !getCachedUser());
+  });
 
-  const refresh = useCallback(async () => {
-    if (!userToken.get()) {
-      setUser(null);
-      return null;
-    }
-    try {
-      const me = await api.auth.me();
-      setUser(me);
-      return me;
-    } catch {
-      userToken.clear();
-      setUser(null);
-      return null;
-    }
+  const setUser = useCallback((u: AuthUser | null) => {
+    setUserState(u);
+    setCachedUser(u);
   }, []);
 
+  const refresh = useCallback(
+    async (forceSync = false): Promise<AuthUser | null> => {
+      if (!userToken.get()) {
+        setUser(null);
+        return null;
+      }
+
+      // Se não for forçado e houver cache válido, retorna o cache
+      if (!forceSync) {
+        const cached = getCachedUser();
+        if (cached) {
+          setUserState(cached);
+          return cached;
+        }
+      }
+
+      try {
+        // Chama o endpoint de sync para confirmar o status da assinatura diretamente no Mercado Pago
+        const synced = await api.billing.sync();
+        setUser(synced);
+        return synced;
+      } catch {
+        // Fallback para /auth/me caso a API externa do MP demore ou offline
+        try {
+          const me = await api.auth.me();
+          setUser(me);
+          return me;
+        } catch {
+          userToken.clear();
+          setUser(null);
+          return null;
+        }
+      }
+    },
+    [setUser],
+  );
+
   useEffect(() => {
-    refresh().finally(() => setLoading(false));
+    if (userToken.get()) {
+      const cached = getCachedUser();
+      if (!cached) {
+        // Sessão ativa e sem informação em cache (ex: na home page): chama o sync imediatamente!
+        setLoading(true);
+        refresh(true).finally(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
+    } else {
+      setLoading(false);
+    }
   }, [refresh]);
 
   const value = useMemo<AuthCtx>(
@@ -61,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.location.reload();
       },
     }),
-    [user, loading, refresh],
+    [user, loading, refresh, setUser],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
