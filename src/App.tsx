@@ -8,6 +8,8 @@ import { FavoritesPage } from './pages/FavoritesPage';
 import { StickerDetailPage } from './pages/StickerDetailPage';
 import { AdminPage } from './pages/AdminPage';
 
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
+
 export function App() {
   return (
     <ToastProvider>
@@ -23,6 +25,7 @@ export function App() {
           {/* Fallback route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <PWAInstallPrompt />
       </BrowserRouter>
     </ToastProvider>
   );
