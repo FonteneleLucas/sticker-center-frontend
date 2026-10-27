@@ -9,6 +9,7 @@ import {
   IconSparkles,
 } from './Icons';
 import { useFavorites } from '../lib/favorites';
+import { useAuth } from '../lib/auth';
 
 export function Header({
   initialQuery = '',
@@ -19,6 +20,7 @@ export function Header({
 }) {
   const [q, setQ] = useState(initialQuery);
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const favs = useFavorites();
 
@@ -83,6 +85,32 @@ export function Header({
                 </span>
               )}
             </Link>
+            {user ? (
+              <>
+                {!user.is_premium && (
+                  <Link
+                    to="/assinar"
+                    className="rounded-full border border-[#DFB992]/40 bg-[#DFB992] px-3 py-1.5 text-xs font-bold text-[#120F0D] hover:bg-[#E8C9A5]"
+                  >
+                    Assinar
+                  </Link>
+                )}
+                <Link
+                  to="/perfil"
+                  className="rounded-full border border-[#DFB992]/20 bg-[#151210] px-3 py-1.5 text-xs font-semibold text-[#DFB992] hover:border-[#DFB992]/50 hover:bg-[#1E1A17] transition"
+                  title="Meu Perfil"
+                >
+                  Perfil
+                </Link>
+              </>
+            ) : (
+              <Link
+                to="/entrar"
+                className="rounded-full border border-[#DFB992]/40 bg-[#DFB992] px-3 py-1.5 text-xs font-bold text-[#120F0D] hover:bg-[#E8C9A5]"
+              >
+                Entrar
+              </Link>
+            )}
           </div>
         </div>
 

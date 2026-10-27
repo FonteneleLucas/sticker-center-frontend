@@ -25,6 +25,100 @@ export const adminToken = {
   clear: () => sessionStorage.removeItem(TOKEN_KEY),
 };
 
+const USER_TOKEN_KEY = 'stickerhub:user-token';
+
+export const userToken = {
+  get: (): string | null => {
+    try {
+      return localStorage.getItem(USER_TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  },
+  set: (token: string) => localStorage.setItem(USER_TOKEN_KEY, token),
+  clear: () => localStorage.removeItem(USER_TOKEN_KEY),
+};
+
+export interface UserSubscription {
+  id: string;
+  plan: 'monthly' | 'annual';
+  status: string;
+  provider: string;
+  amount_cents: number;
+  base_amount_cents: number;
+  coupon_code: string | null;
+  next_payment_date: string | null;
+  created_at: string;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+  is_premium: boolean;
+  premium_until: string | null;
+  subscription: UserSubscription | null;
+}
+
+export interface PlansInfo {
+  plans: { id: 'monthly' | 'annual'; label: string; price_cents: number; months: number }[];
+  annual_savings_percent: number;
+  payments_enabled: boolean;
+}
+
+export interface Quote {
+  plan: string;
+  base_cents: number;
+  final_cents: number;
+  discount_cents: number;
+  coupon_code: string | null;
+  coupon_description: string | null;
+}
+
+export interface BillingSettings {
+  monthly_price: number;
+  annual_price: number;
+  payments_enabled: boolean;
+  webhook_secret_configured: boolean;
+}
+
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  name: string | null;
+  is_active: boolean;
+  is_premium: boolean;
+  premium_override: boolean | null;
+  premium_until: string | null;
+  plan: string | null;
+  subscription_status: string | null;
+  created_at: string;
+}
+
+export interface AdminUserPage {
+  items: AdminUserRow[];
+  page: number;
+  page_size: number;
+  total: number;
+  pages: number;
+  premium_total: number;
+}
+
+export interface AdminCoupon {
+  id: string;
+  code: string;
+  description: string | null;
+  discount_type: 'percent' | 'fixed';
+  discount_value: number;
+  plan: string | null;
+  user_email: string | null;
+  max_uses: number | null;
+  used_count: number;
+  expires_at: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 function qs(params: object): string {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
@@ -39,6 +133,9 @@ async function request<T>(path: string, init: RequestInit & { auth?: boolean } =
   if (init.auth) {
     const token = adminToken.get();
     if (token) headers.set('Authorization', `Bearer ${token}`);
+  } else {
+    const ut = userToken.get();
+    if (ut) headers.set('Authorization', `Bearer ${ut}`);
   }
   if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
@@ -72,6 +169,31 @@ export function mediaUrl(url: string): string {
 }
 
 export const api = {
+  auth: {
+    register: (email: string, password: string, name?: string) =>
+      request<{ access_token: string; user: AuthUser }>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, name: name || null }),
+      }),
+    login: (email: string, password: string) =>
+      request<{ access_token: string; user: AuthUser }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      }),
+    me: () => request<AuthUser>('/auth/me'),
+  },
+  billing: {
+    plans: () => request<PlansInfo>('/billing/plans'),
+    validateCoupon: (plan: string, code: string) =>
+      request<Quote>('/billing/coupon/validate', { method: 'POST', body: JSON.stringify({ plan, code }) }),
+    checkout: (plan: string, coupon_code?: string) =>
+      request<{ subscription_id: string; status: string; init_point: string | null; free: boolean; user: AuthUser }>(
+        '/billing/checkout',
+        { method: 'POST', body: JSON.stringify({ plan, coupon_code: coupon_code || null }) },
+      ),
+    sync: () => request<AuthUser>('/billing/sync', { method: 'POST' }),
+    cancel: () => request<AuthUser>('/billing/cancel', { method: 'POST' }),
+  },
   listStickers: (p: ListParams = {}) => request<Page<Sticker>>(`/stickers${qs(p)}`),
   search: (p: ListParams) => request<Page<Sticker>>(`/search${qs(p)}`),
   featured: (limit = 12) => request<Sticker[]>(`/stickers/featured${qs({ limit })}`),
@@ -86,6 +208,27 @@ export const api = {
     request<void>('/events/batch', { method: 'POST', body: JSON.stringify({ events }), keepalive: true }),
 
   admin: {
+    billingSettings: () => request<BillingSettings>('/admin/billing/settings', { auth: true }),
+    saveBillingSettings: (monthly_price: number, annual_price: number) =>
+      request<BillingSettings>('/admin/billing/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ monthly_price, annual_price }),
+        auth: true,
+      }),
+    users: (p: { q?: string; premium?: boolean; page?: number }) =>
+      request<AdminUserPage>(`/admin/users${qs(p)}`, { auth: true }),
+    setPremium: (id: string, active: boolean | null) =>
+      request<AdminUserRow>(`/admin/users/${id}/premium`, {
+        method: 'PATCH',
+        body: JSON.stringify({ active }),
+        auth: true,
+      }),
+    coupons: () => request<AdminCoupon[]>('/admin/coupons', { auth: true }),
+    createCoupon: (data: Record<string, unknown>) =>
+      request<AdminCoupon>('/admin/coupons', { method: 'POST', body: JSON.stringify(data), auth: true }),
+    updateCoupon: (id: string, data: Record<string, unknown>) =>
+      request<AdminCoupon>(`/admin/coupons/${id}`, { method: 'PATCH', body: JSON.stringify(data), auth: true }),
+    deleteCoupon: (id: string) => request<void>(`/admin/coupons/${id}`, { method: 'DELETE', auth: true }),
     login: (email: string, password: string) =>
       request<{ access_token: string; token_type: string; expires_in: number }>('/admin/auth/login', {
         method: 'POST',

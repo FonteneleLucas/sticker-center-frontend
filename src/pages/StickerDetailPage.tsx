@@ -489,6 +489,12 @@ export function StickerDetailPage() {
                     <IconLock size={15} />
                     <span>Cópia e Download Bloqueados</span>
                   </div>
+                  <Link
+                    to="/assinar"
+                    className="btn-primary flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-xs font-semibold"
+                  >
+                    <span>★ Assinar Premium</span>
+                  </Link>
                 </div>
               </div>
             ) : (

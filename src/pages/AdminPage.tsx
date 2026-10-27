@@ -5,10 +5,12 @@ import { api, adminToken, mediaUrl } from '../lib/api';
 import { useToast } from '../components/Toast';
 import type { AdminStats, Category, Sticker } from '../lib/types';
 import { IconFolder, IconPlus, IconTrash } from '../components/Icons';
+import { AdminBillingTab } from './AdminBillingTab';
 
 export function AdminPage() {
   const toast = useToast();
 
+  const [activeTab, setActiveTab] = useState<'catalog' | 'billing'>('catalog');
   const [token, setToken] = useState<string | null>(adminToken.get());
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -340,17 +342,47 @@ export function AdminPage() {
           </button>
         </div>
 
-        {/* Hidden File Input for quick cover replacement */}
-        <input
-          ref={coverReplaceInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleCoverReplace}
-        />
+        {/* Tab Switcher */}
+        <div className="mb-8 flex gap-2 border-b border-[#DFB992]/15 pb-3">
+          <button
+            type="button"
+            onClick={() => setActiveTab('catalog')}
+            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
+              activeTab === 'catalog'
+                ? 'bg-[#DFB992] text-[#120F0D]'
+                : 'text-[#9A8978] hover:text-[#F5EDE4] hover:bg-[#1A1714]'
+            }`}
+          >
+            Catálogo & Figurinhas
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('billing')}
+            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
+              activeTab === 'billing'
+                ? 'bg-[#DFB992] text-[#120F0D]'
+                : 'text-[#9A8978] hover:text-[#F5EDE4] hover:bg-[#1A1714]'
+            }`}
+          >
+            Assinaturas, Usuários & Cupons
+          </button>
+        </div>
 
-        {/* Stats Grid */}
-        {stats && (
+        {activeTab === 'billing' ? (
+          <AdminBillingTab />
+        ) : (
+          <>
+            {/* Hidden File Input for quick cover replacement */}
+            <input
+              ref={coverReplaceInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleCoverReplace}
+            />
+
+            {/* Stats Grid */}
+            {stats && (
           <div className="mb-8 grid grid-cols-2 gap-3.5 sm:grid-cols-5">
             <div className="rounded-2xl border border-[#DFB992]/20 bg-[#141210] p-4 shadow-card">
               <span className="text-xs font-medium text-[#9A8978]">Total de Figurinhas</span>
@@ -861,6 +893,8 @@ export function AdminPage() {
             </div>
           </div>
         </div>
+        </>
+        )}
       </main>
 
       <Footer />
