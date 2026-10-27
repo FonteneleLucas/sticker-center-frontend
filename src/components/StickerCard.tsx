@@ -4,7 +4,7 @@ import { mediaUrl } from '../lib/api';
 import { useIsFavorite } from '../lib/favorites';
 import type { Sticker } from '../lib/types';
 import { useStickerActions } from '../lib/useStickerActions';
-import { IconCopy, IconDownload, IconHeart, IconLock } from './Icons';
+import { IconCopy, IconHeart, IconLock } from './Icons';
 import { WatermarkOverlay } from './WatermarkOverlay';
 
 /**
@@ -30,7 +30,7 @@ function getCardToneClass(seed: string): string {
 }
 
 export const StickerCard = memo(function StickerCard({ sticker }: { sticker: Sticker }) {
-  const { copy, download, toggleFavorite, busy } = useStickerActions();
+  const { copy, toggleFavorite, busy } = useStickerActions();
   const fav = useIsFavorite(sticker.id);
   const toneClass = getCardToneClass(sticker.id || sticker.slug);
   const isPremium = Boolean(sticker.is_premium);
@@ -86,19 +86,6 @@ export const StickerCard = memo(function StickerCard({ sticker }: { sticker: Sti
             >
               <IconCopy size={13} />
             </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                download(sticker);
-              }}
-              disabled={busy === `download:${sticker.id}`}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-[#DFB992]/30 bg-[#12100E]/85 text-[#F2DEC9] backdrop-blur-sm transition hover:border-[#DFB992] hover:bg-[#DFB992] hover:text-[#120F0D]"
-              title={`Baixar ${sticker.name}`}
-              aria-label={`Baixar ${sticker.name} em PNG`}
-            >
-              <IconDownload size={13} />
-            </button>
           </div>
         )}
 
@@ -132,29 +119,16 @@ export const StickerCard = memo(function StickerCard({ sticker }: { sticker: Sti
             <span>Premium</span>
           </Link>
         ) : (
-          <>
-            <button
-              type="button"
-              onClick={() => copy(sticker)}
-              disabled={busy === `copy:${sticker.id}`}
-              className="flex flex-1 items-center justify-center gap-1 rounded-lg py-1 text-[11px] font-semibold text-[#E6D5C3] transition hover:bg-[#DFB992]/15 hover:text-[#DFB992] disabled:opacity-50"
-              aria-label={`Copiar ${sticker.name}`}
-            >
-              <IconCopy size={13} />
-              <span>Copiar</span>
-            </button>
-            <span className="h-3 w-px bg-[#DFB992]/15" aria-hidden />
-            <button
-              type="button"
-              onClick={() => download(sticker)}
-              disabled={busy === `download:${sticker.id}`}
-              className="flex flex-1 items-center justify-center gap-1 rounded-lg py-1 text-[11px] font-semibold text-[#DFB992] transition hover:bg-[#DFB992]/15 disabled:opacity-50"
-              aria-label={`Baixar ${sticker.name}`}
-            >
-              <IconDownload size={13} />
-              <span>Baixar</span>
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => copy(sticker)}
+            disabled={busy === `copy:${sticker.id}`}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-[11px] font-semibold text-[#DFB992] transition hover:bg-[#DFB992]/15 disabled:opacity-50"
+            aria-label={`Copiar ${sticker.name}`}
+          >
+            <IconCopy size={13} />
+            <span>Copiar</span>
+          </button>
         )}
       </div>
     </article>

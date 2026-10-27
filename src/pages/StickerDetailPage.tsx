@@ -11,22 +11,11 @@ import { useStickerActions } from '../lib/useStickerActions';
 import type { Sticker } from '../lib/types';
 import {
   IconCopy,
-  IconDownload,
   IconHeart,
-  IconShare,
-  IconLink,
   IconChevronLeft,
   IconLock,
 } from '../components/Icons';
 import { WatermarkOverlay } from '../components/WatermarkOverlay';
-
-const BG_SWATCHES = [
-  { label: 'Champagne', className: 'bg-[#E5CEB8]' },
-  { label: 'Taupe', className: 'bg-[#C2A385]' },
-  { label: 'Obsidian', className: 'bg-[#181512]' },
-  { label: 'Mocha', className: 'bg-[#4A3A2E]' },
-  { label: 'Transparente', className: 'checkerboard' },
-];
 
 export function StickerDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -36,9 +25,10 @@ export function StickerDetailPage() {
   const [related, setRelated] = useState<Sticker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [previewBg, setPreviewBg] = useState<string>(BG_SWATCHES[0].className);
+  const [isTransparent, setIsTransparent] = useState(true);
+  const [customColor, setCustomColor] = useState('#E5CEB8');
 
-  const { copy, download, toggleFavorite, shareLink, shareFile, busy } = useStickerActions();
+  const { copy, toggleFavorite, busy } = useStickerActions();
   const isFav = useIsFavorite(sticker?.id || '');
 
   useDocumentMeta(
@@ -157,7 +147,10 @@ export function StickerDetailPage() {
           <div className="md:col-span-5">
             <div
               onContextMenu={sticker.is_premium ? (e) => e.preventDefault() : undefined}
-              className={`relative aspect-[3/4] w-full overflow-hidden rounded-3xl border border-[#DFB992]/30 shadow-card transition-colors duration-300 select-none ${previewBg}`}
+              className={`relative aspect-[3/4] w-full overflow-hidden rounded-3xl border border-[#DFB992]/30 shadow-card transition-colors duration-300 select-none ${
+                isTransparent ? 'checkerboard' : ''
+              }`}
+              style={!isTransparent ? { backgroundColor: customColor } : undefined}
             >
               <img
                 src={mediaUrl(sticker.image_url)}
@@ -170,6 +163,36 @@ export function StickerDetailPage() {
               {/* Premium Watermark */}
               {sticker.is_premium && <WatermarkOverlay size="lg" />}
 
+              {/* Botão de favoritar diretamente sobre a imagem */}
+              <button
+                type="button"
+                onClick={() => toggleFavorite(sticker)}
+                className={`absolute top-3.5 left-3.5 z-20 flex h-10 w-10 items-center justify-center rounded-full border shadow-lg backdrop-blur-md transition duration-200 hover:scale-105 ${
+                  isFav
+                    ? 'border-[#DFB992] bg-[#DFB992] text-[#120F0D] shadow-glow'
+                    : 'border-[#DFB992]/40 bg-[#12100E]/85 text-[#DFB992] hover:border-[#DFB992] hover:bg-[#12100E]'
+                }`}
+                aria-pressed={isFav}
+                aria-label={isFav ? `Remover ${sticker.name} dos favoritos` : `Favoritar ${sticker.name}`}
+                title={isFav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+              >
+                <IconHeart filled={isFav} size={18} />
+              </button>
+
+              {/* Botão de cópia rápida diretamente sobre a imagem */}
+              {!sticker.is_premium && (
+                <button
+                  type="button"
+                  onClick={() => copy(sticker)}
+                  disabled={busy === `copy:${sticker.id}`}
+                  className="absolute top-3.5 right-3.5 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-[#DFB992]/40 bg-[#12100E]/85 text-[#F2DEC9] shadow-lg backdrop-blur-md transition duration-200 hover:scale-105 hover:border-[#DFB992] hover:bg-[#DFB992] hover:text-[#120F0D] disabled:opacity-50"
+                  title={`Copiar ${sticker.name}`}
+                  aria-label={`Copiar ${sticker.name}`}
+                >
+                  <IconCopy size={18} />
+                </button>
+              )}
+
               {sticker.has_transparency && !sticker.is_premium && (
                 <div className="absolute bottom-3 left-3 rounded-full border border-[#DFB992]/30 bg-[#12100E]/85 px-3 py-1 text-[11px] font-medium text-[#F2DEC9] backdrop-blur-md">
                   ✦ PNG Transparente
@@ -177,22 +200,50 @@ export function StickerDetailPage() {
               )}
             </div>
 
-            {/* Background tone switcher so user can preview contrast */}
-            <div className="mt-3 flex items-center justify-center gap-2">
+            {/* Background test switcher: Default Transparent + Color Picker */}
+            <div className="mt-3.5 flex items-center justify-center gap-2.5">
               <span className="text-[11px] text-[#9A8978]">Fundo de teste:</span>
-              {BG_SWATCHES.map((sw) => (
-                <button
-                  key={sw.label}
-                  type="button"
-                  onClick={() => setPreviewBg(sw.className)}
-                  title={sw.label}
-                  className={`h-6 w-6 rounded-full border transition ${sw.className} ${
-                    previewBg === sw.className
-                      ? 'scale-110 border-[#DFB992] ring-2 ring-[#DFB992]/40'
-                      : 'border-[#DFB992]/25 opacity-75 hover:opacity-100'
-                  }`}
+
+              {/* Opção Transparente (Padrão) */}
+              <button
+                type="button"
+                onClick={() => setIsTransparent(true)}
+                title="Fundo transparente (padrão)"
+                className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition duration-200 ${
+                  isTransparent
+                    ? 'border-[#DFB992] bg-[#1E1A17] text-[#DFB992] ring-1 ring-[#DFB992]/40 shadow-sm'
+                    : 'border-[#DFB992]/25 bg-[#141210] text-[#9A8978] hover:border-[#DFB992]/50 hover:text-[#E6D5C3]'
+                }`}
+              >
+                <span className="checkerboard h-4 w-4 shrink-0 rounded-full border border-[#DFB992]/30 shadow-inner" />
+                <span>Transparente</span>
+              </button>
+
+              {/* Opção Color Picker */}
+              <label
+                title="Escolher cor personalizada com color picker"
+                className={`relative flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition duration-200 ${
+                  !isTransparent
+                    ? 'border-[#DFB992] bg-[#1E1A17] text-[#DFB992] ring-1 ring-[#DFB992]/40 shadow-sm'
+                    : 'border-[#DFB992]/25 bg-[#141210] text-[#9A8978] hover:border-[#DFB992]/50 hover:text-[#E6D5C3]'
+                }`}
+              >
+                <span
+                  className="h-4 w-4 shrink-0 rounded-full border border-[#DFB992]/40 shadow-inner"
+                  style={{ backgroundColor: customColor }}
                 />
-              ))}
+                <span>Cor</span>
+                <input
+                  type="color"
+                  value={customColor}
+                  onChange={(e) => {
+                    setCustomColor(e.target.value);
+                    setIsTransparent(false);
+                  }}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  aria-label="Escolher cor personalizada"
+                />
+              </label>
             </div>
           </div>
 
@@ -247,80 +298,25 @@ export function StickerDetailPage() {
                 </div>
               </div>
             ) : (
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <div className="mt-8">
                 <button
                   type="button"
                   onClick={() => copy(sticker)}
                   disabled={busy === `copy:${sticker.id}`}
-                  className="btn-primary min-h-[48px] flex-1 rounded-2xl text-sm"
+                  className="btn-primary min-h-[48px] w-full rounded-2xl text-sm"
                 >
                   <IconCopy size={18} />
                   <span>Copiar para colar nos Stories</span>
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => download(sticker, 'original')}
-                  disabled={busy === `download:${sticker.id}`}
-                  className="btn-secondary min-h-[48px] flex-1 rounded-2xl text-sm"
-                >
-                  <IconDownload size={18} />
-                  <span>Baixar PNG Transparente</span>
-                </button>
               </div>
             )}
 
-            {/* Secondary actions: share and stats */}
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[#DFB992]/15 pt-6">
-              <div className="flex items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => shareLink(sticker)}
-                  className="btn-secondary min-h-[38px] rounded-full text-xs"
-                >
-                  <IconLink size={15} />
-                  <span>Copiar link</span>
-                </button>
-                {!sticker.is_premium && (
-                  <button
-                    type="button"
-                    onClick={() => shareFile(sticker)}
-                    className="btn-secondary min-h-[38px] rounded-full text-xs"
-                  >
-                    <IconShare size={15} />
-                    <span>Compartilhar</span>
-                  </button>
-                )}
-              </div>
-
-              <div className="text-xs text-[#8E7F70]">
-                <span>{sticker.download_count} downloads</span> • <span>{sticker.copy_count} cópias</span>
-              </div>
+            {/* Stats */}
+            <div className="mt-6 border-t border-[#DFB992]/15 pt-6 text-xs text-[#8E7F70]">
+              <span>{sticker.copy_count} cópias</span>
             </div>
 
-            {/* Specs card */}
-            <div className="mt-6 rounded-2xl border border-[#DFB992]/15 bg-[#141210] p-4 text-xs text-[#9A8978]">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div>
-                  <span className="block font-semibold text-[#DFB992]">Formato</span>
-                  <span>{sticker.mime_type || 'image/png'}</span>
-                </div>
-                <div>
-                  <span className="block font-semibold text-[#DFB992]">Dimensões</span>
-                  <span>
-                    {sticker.width} x {sticker.height} px
-                  </span>
-                </div>
-                <div>
-                  <span className="block font-semibold text-[#DFB992]">Fundo</span>
-                  <span>Transparente</span>
-                </div>
-                <div>
-                  <span className="block font-semibold text-[#DFB992]">Coleção</span>
-                  <span>{sticker.attribution || 'Stories & Stickers'}</span>
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
 
