@@ -33,21 +33,37 @@ function classify(err: unknown): CopyResult {
   return { ok: false, reason: 'failed', message: `Não foi possível copiar o sticker. ${DOWNLOAD_HINT}` };
 }
 
-async function getPngBlob(url: string): Promise<Blob> {
+async function getPngBlob(url: string, fallbackUrl?: string): Promise<Blob> {
   const fullUrl = mediaUrl(url);
 
+  // 1. First attempt: fetch directly as ArrayBuffer with CORS cache-busting
   try {
-    // 1. First attempt: fetch directly as ArrayBuffer and build a clean image/png Blob
-    const res = await fetch(fullUrl, { mode: 'cors', credentials: 'omit' });
+    const corsUrl = fullUrl.startsWith('http')
+      ? (fullUrl.includes('?') ? `${fullUrl}&cors=1` : `${fullUrl}?cors=1`)
+      : fullUrl;
+    const res = await fetch(corsUrl, { mode: 'cors', credentials: 'omit' });
     if (res.ok) {
       const buffer = await res.arrayBuffer();
       return new Blob([buffer], { type: 'image/png' });
     }
   } catch {
-    /* fallback to Image/Canvas */
+    /* fallback to same-origin proxy or canvas */
   }
 
-  // 2. Second attempt: load into image and export via canvas
+  // 2. Second attempt: fetch via same-origin backend proxy (100% CORS-safe on iPad/iOS)
+  if (fallbackUrl) {
+    try {
+      const res = await fetch(mediaUrl(fallbackUrl));
+      if (res.ok) {
+        const buffer = await res.arrayBuffer();
+        return new Blob([buffer], { type: 'image/png' });
+      }
+    } catch {
+      /* fallback to canvas */
+    }
+  }
+
+  // 3. Third attempt: load into image and export via canvas
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -68,7 +84,7 @@ async function getPngBlob(url: string): Promise<Blob> {
       }, 'image/png');
     };
     img.onerror = () => reject(new Error('Falha ao carregar a imagem'));
-    img.src = fullUrl;
+    img.src = fallbackUrl ? mediaUrl(fallbackUrl) : fullUrl;
   });
 }
 
@@ -78,7 +94,7 @@ async function getPngBlob(url: string): Promise<Blob> {
  * Safari STRICTLY requires creating `new ClipboardItem({'image/png': <Promise<Blob>>})`
  * synchronously within the user gesture callback before any await.
  */
-export async function copyImageFromUrl(url: string): Promise<CopyResult> {
+export async function copyImageFromUrl(url: string, fallbackUrl?: string): Promise<CopyResult> {
   if (typeof window === 'undefined' || !navigator.clipboard || typeof navigator.clipboard.write !== 'function') {
     return {
       ok: false,
@@ -88,7 +104,7 @@ export async function copyImageFromUrl(url: string): Promise<CopyResult> {
   }
 
   // Promise started immediately so Safari recognizes user gesture activation
-  const blobPromise = getPngBlob(url);
+  const blobPromise = getPngBlob(url, fallbackUrl);
 
   try {
     if (typeof ClipboardItem !== 'undefined') {

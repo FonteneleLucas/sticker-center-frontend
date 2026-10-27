@@ -19,8 +19,8 @@ export function useStickerActions() {
         return false;
       }
       setBusy(`copy:${s.id}`);
-      // Called synchronously from the click handler: copyImageFromUrl builds the ClipboardItem immediately.
-      const result = await copyImageFromUrl(s.image_url);
+      const fallbackUrl = `/api/v1/stickers/${encodeURIComponent(s.slug)}/file?variant=original`;
+      const result = await copyImageFromUrl(s.image_url, fallbackUrl);
       setBusy(null);
       if (result.ok) {
         trackEvent(s.id, 'copy');

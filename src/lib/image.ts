@@ -113,7 +113,8 @@ export function recolorImageElement(
 export async function recolorStickerBlob(
   imageUrl: string,
   color: string,
-  cachedElement?: HTMLImageElement | null
+  cachedElement?: HTMLImageElement | null,
+  fallbackUrl?: string
 ): Promise<Blob> {
   // 1. If an image element is already rendered and complete in the DOM, use it directly (0ms latency)
   if (
@@ -156,10 +157,37 @@ export async function recolorStickerBlob(
       }
     }
   } catch (fetchErr) {
-    console.warn('Fetch with CORS failed, attempting Image crossOrigin:', fetchErr);
+    console.warn('Fetch with CORS failed:', fetchErr);
   }
 
-  // 3. Fallback: load via new Image() with crossOrigin = 'anonymous'
+  // 3. Fallback: fetch via same-origin backend proxy (100% CORS-safe on iPad PWA)
+  if (fallbackUrl) {
+    try {
+      const res = await fetch(mediaUrl(fallbackUrl));
+      if (res.ok) {
+        const blob = await res.blob();
+        if (typeof createImageBitmap === 'function') {
+          const bmp = await createImageBitmap(blob);
+          try {
+            return await recolorImageElement(bmp, color, bmp.width, bmp.height);
+          } finally {
+            bmp.close();
+          }
+        }
+        const objectUrl = URL.createObjectURL(blob);
+        try {
+          const img = await loadImage(objectUrl, false);
+          return await recolorImageElement(img, color);
+        } finally {
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 15_000);
+        }
+      }
+    } catch (proxyErr) {
+      console.warn('Fallback proxy failed:', proxyErr);
+    }
+  }
+
+  // 4. Ultimate fallback: load via new Image() with crossOrigin = 'anonymous'
   const img = await loadImage(corsUrl, true);
   return await recolorImageElement(img, color);
 }

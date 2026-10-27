@@ -36,6 +36,7 @@ export function StickerDetailPage() {
   const [stickerColor, setStickerColor] = useState<string | null>(null);
   const [recoloredBlob, setRecoloredBlob] = useState<Blob | null>(null);
   const [copyBusy, setCopyBusy] = useState(false);
+  const [displayImgUrl, setDisplayImgUrl] = useState<string>('');
   const imageRef = useRef<HTMLImageElement>(null);
 
   const { copy, toggleFavorite, busy } = useStickerActions();
@@ -59,6 +60,7 @@ export function StickerDetailPage() {
         const item = await api.getSticker(slug!);
         if (!ignore) {
           setSticker(item);
+          setDisplayImgUrl(mediaUrl(item.image_url));
           api.related(item.slug, 6)
             .then((rel) => {
               if (!ignore) setRelated(rel);
@@ -86,6 +88,16 @@ export function StickerDetailPage() {
     setBgMode('black');
   }, [slug]);
 
+  const handleImageError = () => {
+    if (!sticker) return;
+    const sameOriginFile = `/api/v1/stickers/${encodeURIComponent(sticker.slug)}/file?variant=original`;
+    if (displayImgUrl !== sameOriginFile) {
+      setDisplayImgUrl(sameOriginFile);
+    } else if (displayImgUrl !== mediaUrl(sticker.optimized_url)) {
+      setDisplayImgUrl(mediaUrl(sticker.optimized_url));
+    }
+  };
+
   // Prepare recolored blob in the background when stickerColor is active
   useEffect(() => {
     let ignore = false;
@@ -94,8 +106,9 @@ export function StickerDetailPage() {
       return;
     }
 
+    const fallbackFile = `/api/v1/stickers/${encodeURIComponent(sticker.slug)}/file?variant=original`;
     const timer = setTimeout(() => {
-      recolorStickerBlob(sticker.image_url, stickerColor, imageRef.current)
+      recolorStickerBlob(sticker.image_url, stickerColor, imageRef.current, fallbackFile)
         .then((blob) => {
           if (!ignore) {
             setRecoloredBlob(blob);
@@ -122,9 +135,10 @@ export function StickerDetailPage() {
     if (stickerColor) {
       setCopyBusy(true);
       try {
+        const fallbackFile = `/api/v1/stickers/${encodeURIComponent(sticker.slug)}/file?variant=original`;
         const blobPromise = (async () => {
           if (recoloredBlob) return recoloredBlob;
-          return recolorStickerBlob(sticker.image_url, stickerColor, imageRef.current);
+          return recolorStickerBlob(sticker.image_url, stickerColor, imageRef.current, fallbackFile);
         })();
 
         const res = await copyBlobToClipboard(blobPromise);
@@ -261,10 +275,10 @@ export function StickerDetailPage() {
             >
               <img
                 ref={imageRef}
-                crossOrigin="anonymous"
-                src={mediaUrl(sticker.image_url)}
+                src={displayImgUrl || mediaUrl(sticker.image_url)}
                 alt={sticker.name}
                 draggable={!sticker.is_premium}
+                onError={handleImageError}
                 className={`h-full w-full object-contain p-8 drop-shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition-all duration-150 ${
                   sticker.is_premium ? 'pointer-events-none select-none blur-[2.5px] opacity-85' : ''
                 }`}
@@ -329,34 +343,6 @@ export function StickerDetailPage() {
                   ✦
                 </span>
                 <span>Padrão</span>
-              </button>
-
-              {/* Swatch Branco */}
-              <button
-                type="button"
-                onClick={() => setStickerColor('#FFFFFF')}
-                title="Branco"
-                className={`flex h-6 w-6 items-center justify-center rounded-full border transition duration-200 hover:scale-105 ${
-                  stickerColor?.toUpperCase() === '#FFFFFF'
-                    ? 'border-[#DFB992] ring-2 ring-[#DFB992]/50'
-                    : 'border-[#DFB992]/30 hover:border-[#DFB992]'
-                }`}
-              >
-                <span className="h-3.5 w-3.5 rounded-full bg-white shadow-sm" />
-              </button>
-
-              {/* Swatch Dourado */}
-              <button
-                type="button"
-                onClick={() => setStickerColor('#DFB992')}
-                title="Dourado"
-                className={`flex h-6 w-6 items-center justify-center rounded-full border transition duration-200 hover:scale-105 ${
-                  stickerColor?.toUpperCase() === '#DFB992'
-                    ? 'border-[#DFB992] ring-2 ring-[#DFB992]/50'
-                    : 'border-[#DFB992]/30 hover:border-[#DFB992]'
-                }`}
-              >
-                <span className="h-3.5 w-3.5 rounded-full bg-[#DFB992] shadow-sm" />
               </button>
 
               {/* Opção Color Picker da Figurinha (Mais cores) */}

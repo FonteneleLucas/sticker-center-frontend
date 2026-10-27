@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stickerhub-v1';
+const CACHE_NAME = 'stickerhub-v2';
 
 const STATIC_ASSETS = [
   '/',
@@ -41,6 +41,14 @@ self.addEventListener('fetch', (event) => {
 
   // Skip non-GET requests and chrome-extension schemes
   if (req.method !== 'GET' || url.protocol.startsWith('chrome-extension')) {
+    return;
+  }
+
+  // CRITICAL FIX FOR IPAD / SAFARI:
+  // Never intercept cross-origin CDN or Neon storage requests!
+  // Intercepting cross-origin images in WebKit creates opaque cache responses,
+  // causing Safari to fail CORS checks and display only broken alt text.
+  if (url.origin !== self.location.origin) {
     return;
   }
 
