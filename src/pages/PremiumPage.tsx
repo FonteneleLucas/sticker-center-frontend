@@ -78,14 +78,23 @@ export function PremiumPage() {
     }
   }
 
+  function getMpDeviceId(): string | undefined {
+    if (typeof window !== 'undefined') {
+      return (window as any).MP_DEVICE_SESSION_ID || (window as any).deviceId || undefined;
+    }
+    return undefined;
+  }
+
   async function checkout() {
     setBusy(true);
     setError('');
 
     try {
+      const deviceId = getMpDeviceId();
+
       if (finalCents === 0) {
         // Cupom de 100% ou plano gratuito
-        const res = await api.billing.checkout(plan, quote ? code.trim() : undefined);
+        const res = await api.billing.checkout(plan, quote ? code.trim() : undefined, deviceId);
         if (res.free) {
           setUser(res.user);
           setDone(true);
@@ -94,10 +103,10 @@ export function PremiumPage() {
       }
 
       if (paymentMethod === 'pix') {
-        const res = await api.billing.checkoutPix(plan, quote ? code.trim() : undefined);
+        const res = await api.billing.checkoutPix(plan, quote ? code.trim() : undefined, deviceId);
         setPixData(res);
       } else {
-        const res = await api.billing.checkout(plan, quote ? code.trim() : undefined);
+        const res = await api.billing.checkout(plan, quote ? code.trim() : undefined, deviceId);
         if (res.init_point) {
           window.location.href = res.init_point;
           return;

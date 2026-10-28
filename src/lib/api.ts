@@ -214,15 +214,15 @@ export const api = {
     plans: () => request<PlansInfo>('/billing/plans'),
     validateCoupon: (plan: string, code: string) =>
       request<Quote>('/billing/coupon/validate', { method: 'POST', body: JSON.stringify({ plan, code }) }),
-    checkout: (plan: string, coupon_code?: string) =>
+    checkout: (plan: string, coupon_code?: string, device_id?: string) =>
       request<{ subscription_id: string; status: string; init_point: string | null; free: boolean; user: AuthUser }>(
         '/billing/checkout',
-        { method: 'POST', body: JSON.stringify({ plan, coupon_code: coupon_code || null }) },
+        { method: 'POST', body: JSON.stringify({ plan, coupon_code: coupon_code || null, device_id: device_id || null }) },
       ),
-    checkoutPix: (plan: string, coupon_code?: string) =>
+    checkoutPix: (plan: string, coupon_code?: string, device_id?: string) =>
       request<PixCheckoutData>('/billing/checkout-pix', {
         method: 'POST',
-        body: JSON.stringify({ plan, coupon_code: coupon_code || null }),
+        body: JSON.stringify({ plan, coupon_code: coupon_code || null, device_id: device_id || null }),
       }),
     pixStatus: (payment_id: string) =>
       request<PixStatusData>(`/billing/pix-status/${encodeURIComponent(payment_id)}`),
