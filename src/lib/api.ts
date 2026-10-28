@@ -75,6 +75,27 @@ export interface Quote {
   coupon_description: string | null;
 }
 
+export interface PixCheckoutData {
+  subscription_id: string;
+  payment_id: string;
+  status: string;
+  qr_code: string;
+  qr_code_base64: string;
+  ticket_url: string | null;
+  expires_at: string | null;
+  amount_cents: number;
+  plan: string;
+  free: boolean;
+  user: AuthUser;
+}
+
+export interface PixStatusData {
+  payment_id: string;
+  approved: boolean;
+  status: string;
+  user: AuthUser;
+}
+
 export interface BillingSettings {
   monthly_price: number;
   annual_price: number;
@@ -198,6 +219,13 @@ export const api = {
         '/billing/checkout',
         { method: 'POST', body: JSON.stringify({ plan, coupon_code: coupon_code || null }) },
       ),
+    checkoutPix: (plan: string, coupon_code?: string) =>
+      request<PixCheckoutData>('/billing/checkout-pix', {
+        method: 'POST',
+        body: JSON.stringify({ plan, coupon_code: coupon_code || null }),
+      }),
+    pixStatus: (payment_id: string) =>
+      request<PixStatusData>(`/billing/pix-status/${encodeURIComponent(payment_id)}`),
     sync: () => request<AuthUser>('/billing/sync', { method: 'POST' }),
     cancel: () => request<AuthUser>('/billing/cancel', { method: 'POST' }),
   },
