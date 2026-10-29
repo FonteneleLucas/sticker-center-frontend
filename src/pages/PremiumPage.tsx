@@ -349,8 +349,14 @@ export function SubscriptionReturnPage() {
 
   useEffect(() => {
     if (loading || !user) return;
+    const paymentOrPreapprovalId =
+      params.get('preapproval_id') ||
+      params.get('payment_id') ||
+      params.get('collection_id') ||
+      params.get('id') ||
+      undefined;
     api.billing
-      .sync()
+      .sync(paymentOrPreapprovalId)
       .then(setUser)
       .catch((e) => setError(e.message))
       .finally(() => setSyncing(false));
@@ -361,7 +367,11 @@ export function SubscriptionReturnPage() {
   if (!user) return <Navigate to="/entrar?redirect=/assinatura/retorno" replace />;
 
   const sub = user.subscription;
-  const returned = params.has('sub');
+  const returned =
+    params.has('sub') ||
+    params.has('preapproval_id') ||
+    params.has('payment_id') ||
+    params.has('collection_id');
 
   async function cancel() {
     if (!window.confirm('Cancelar a renovação da assinatura? O acesso continua até o fim do período pago.')) return;

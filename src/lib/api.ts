@@ -226,7 +226,10 @@ export const api = {
       }),
     pixStatus: (payment_id: string) =>
       request<PixStatusData>(`/billing/pix-status/${encodeURIComponent(payment_id)}`),
-    sync: () => request<AuthUser>('/billing/sync', { method: 'POST' }),
+    sync: (preapproval_id?: string) =>
+      request<AuthUser>(`/billing/sync${preapproval_id ? `?preapproval_id=${encodeURIComponent(preapproval_id)}` : ''}`, {
+        method: 'POST',
+      }),
     cancel: () => request<AuthUser>('/billing/cancel', { method: 'POST' }),
   },
   listStickers: (p: ListParams = {}) => request<Page<Sticker>>(`/stickers${qs(p)}`),
