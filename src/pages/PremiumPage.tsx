@@ -350,6 +350,7 @@ export function SubscriptionReturnPage() {
   useEffect(() => {
     if (loading || !user) return;
     const paymentOrPreapprovalId =
+      params.get('session_id') ||
       params.get('preapproval_id') ||
       params.get('payment_id') ||
       params.get('collection_id') ||
@@ -368,6 +369,7 @@ export function SubscriptionReturnPage() {
 
   const sub = user.subscription;
   const returned =
+    params.has('session_id') ||
     params.has('sub') ||
     params.has('preapproval_id') ||
     params.has('payment_id') ||
@@ -385,10 +387,19 @@ export function SubscriptionReturnPage() {
     }
   }
 
+  async function openStripePortal() {
+    try {
+      const res = await api.billing.portal();
+      if (res.url) window.location.href = res.url;
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }
+
   let message = returned ? 'Sua assinatura' : 'Meu Perfil';
   if (syncing) message = 'Confirmando pagamento…';
   else if (returned && user.is_premium) message = 'Pagamento confirmado! Bem-vindo ao Premium.';
-  else if (returned && sub?.status === 'pending') message = 'Pagamento pendente. Assim que o Mercado Pago confirmar, o acesso é liberado.';
+  else if (returned && sub?.status === 'pending') message = 'Pagamento pendente. Assim que confirmado, o acesso é liberado.';
   else if (returned) message = 'Não identificamos um pagamento aprovado.';
 
   return (
@@ -402,7 +413,7 @@ export function SubscriptionReturnPage() {
           <div>Plano: <span className="font-semibold text-[#DFB992]">{user.is_premium ? '★ Premium Ativo' : 'Gratuito'}</span></div>
           {sub && (
             <>
-              <div>Tipo: <span className="font-semibold">{sub.provider === 'mercadopago_pix' ? 'Pagamento Pix' : 'Assinatura Recorrente'}</span></div>
+              <div>Tipo: <span className="font-semibold">{sub.provider === 'mercadopago_pix' ? 'Pagamento Pix' : sub.provider === 'stripe' ? 'Cartão / Apple Pay (Stripe)' : 'Assinatura Recorrente'}</span></div>
               <div>Plano: {sub.plan === 'annual' ? 'Anual' : 'Mensal'} ({sub.status})</div>
               <div>Valor: {brl(sub.amount_cents)}{sub.coupon_code ? ` (cupom ${sub.coupon_code})` : ''}</div>
               {sub.next_payment_date && <div>Próxima renovação: {fmtDate(sub.next_payment_date)}</div>}
@@ -414,6 +425,11 @@ export function SubscriptionReturnPage() {
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <Link to="/" className="btn-primary">Explorar figurinhas</Link>
           {!user.is_premium && <Link to="/assinar" className="btn-secondary">Assinar Premium</Link>}
+          {sub?.provider === 'stripe' && sub?.status === 'authorized' && (
+            <button className="btn-secondary" onClick={openStripePortal}>
+              Gerenciar no Stripe
+            </button>
+          )}
           {sub?.provider !== 'mercadopago_pix' && sub?.status === 'authorized' && (
             <button className="btn-secondary" onClick={cancel} disabled={cancelling}>
               {cancelling ? 'Cancelando…' : 'Cancelar assinatura'}

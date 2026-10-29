@@ -64,6 +64,8 @@ export interface PlansInfo {
   plans: { id: 'monthly' | 'annual'; label: string; price_cents: number; months: number }[];
   annual_savings_percent: number;
   payments_enabled: boolean;
+  stripe_enabled?: boolean;
+  mercadopago_enabled?: boolean;
 }
 
 export interface Quote {
@@ -102,6 +104,9 @@ export interface BillingSettings {
   payments_enabled: boolean;
   webhook_secret_configured: boolean;
   google_client_id?: string | null;
+  stripe_configured?: boolean;
+  mercadopago_configured?: boolean;
+  default_card_gateway?: string;
 }
 
 export interface AdminUserRow {
@@ -214,10 +219,10 @@ export const api = {
     plans: () => request<PlansInfo>('/billing/plans'),
     validateCoupon: (plan: string, code: string) =>
       request<Quote>('/billing/coupon/validate', { method: 'POST', body: JSON.stringify({ plan, code }) }),
-    checkout: (plan: string, coupon_code?: string, device_id?: string) =>
+    checkout: (plan: string, coupon_code?: string, device_id?: string, gateway?: 'stripe' | 'mercadopago') =>
       request<{ subscription_id: string; status: string; init_point: string | null; free: boolean; user: AuthUser }>(
         '/billing/checkout',
-        { method: 'POST', body: JSON.stringify({ plan, coupon_code: coupon_code || null, device_id: device_id || null }) },
+        { method: 'POST', body: JSON.stringify({ plan, coupon_code: coupon_code || null, device_id: device_id || null, gateway: gateway || null }) },
       ),
     checkoutPix: (plan: string, coupon_code?: string, device_id?: string) =>
       request<PixCheckoutData>('/billing/checkout-pix', {
@@ -226,10 +231,24 @@ export const api = {
       }),
     pixStatus: (payment_id: string) =>
       request<PixStatusData>(`/billing/pix-status/${encodeURIComponent(payment_id)}`),
-    sync: (preapproval_id?: string) =>
-      request<AuthUser>(`/billing/sync${preapproval_id ? `?preapproval_id=${encodeURIComponent(preapproval_id)}` : ''}`, {
-        method: 'POST',
-      }),
+    sync: (param?: string | { preapproval_id?: string; session_id?: string }) => {
+      let query = '';
+      if (typeof param === 'string') {
+        if (param.startsWith('cs_')) {
+          query = `?session_id=${encodeURIComponent(param)}`;
+        } else {
+          query = `?preapproval_id=${encodeURIComponent(param)}`;
+        }
+      } else if (param) {
+        const q = new URLSearchParams();
+        if (param.preapproval_id) q.set('preapproval_id', param.preapproval_id);
+        if (param.session_id) q.set('session_id', param.session_id);
+        const s = q.toString();
+        if (s) query = `?${s}`;
+      }
+      return request<AuthUser>(`/billing/sync${query}`, { method: 'POST' });
+    },
+    portal: () => request<{ url: string }>('/billing/stripe/portal', { method: 'POST' }),
     cancel: () => request<AuthUser>('/billing/cancel', { method: 'POST' }),
   },
   listStickers: (p: ListParams = {}) => request<Page<Sticker>>(`/stickers${qs(p)}`),
