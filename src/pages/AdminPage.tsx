@@ -4,7 +4,7 @@ import { Footer } from '../components/Footer';
 import { api, adminToken, mediaUrl } from '../lib/api';
 import { useToast } from '../components/Toast';
 import type { AdminStats, Category, Sticker } from '../lib/types';
-import { IconFolder, IconPlus, IconTrash } from '../components/Icons';
+import { IconEdit, IconFolder, IconPlus, IconTrash } from '../components/Icons';
 import { AdminBillingTab } from './AdminBillingTab';
 
 export function AdminPage() {
@@ -60,6 +60,18 @@ export function AdminPage() {
     error_count: number;
     errors: string[];
   } | null>(null);
+
+  // Edit Sticker Modal state
+  const [editingSticker, setEditingSticker] = useState<Sticker | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editParentCatId, setEditParentCatId] = useState('');
+  const [editFolderId, setEditFolderId] = useState('');
+  const [editTags, setEditTags] = useState('');
+  const [editIsFeatured, setEditIsFeatured] = useState(false);
+  const [editIsPremium, setEditIsPremium] = useState(false);
+  const [editIsActive, setEditIsActive] = useState(true);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const loadAdminData = async () => {
     try {
@@ -284,12 +296,83 @@ export function AdminPage() {
     }
   };
 
-  const handleDeleteSticker = async (id: string, hard = false) => {
-    if (!window.confirm(hard ? 'Excluir figurinha permanentemente?' : 'Desativar esta figurinha?'))
+  // Open Edit Sticker Modal
+  const openEditSticker = (s: Sticker) => {
+    setEditingSticker(s);
+    setEditName(s.name);
+    setEditDesc(s.description || '');
+    setEditTags(s.tags?.join(', ') || '');
+    setEditIsFeatured(Boolean(s.is_featured));
+    setEditIsPremium(Boolean(s.is_premium));
+    setEditIsActive(s.is_active !== false);
+
+    const sCatId = s.category?.id;
+    let parentId = '';
+    let folderId = '';
+
+    const rootFound = categories.find((c) => c.id === sCatId);
+    if (rootFound) {
+      parentId = rootFound.id;
+    } else {
+      for (const root of categories) {
+        const fFound = root.folders?.find((f) => f.id === sCatId);
+        if (fFound) {
+          parentId = root.id;
+          folderId = fFound.id;
+          break;
+        }
+      }
+    }
+
+    setEditParentCatId(parentId || (categories[0]?.id || ''));
+    setEditFolderId(folderId);
+  };
+
+  const handleSaveEditSticker = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSticker) return;
+    if (!editName.trim()) {
+      toast.error('Informe o nome da figurinha.');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const catId = editFolderId || editParentCatId;
+      const tagList = editTags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+
+      await api.admin.updateSticker(editingSticker.id, {
+        name: editName.trim(),
+        description: editDesc.trim() || undefined,
+        category_id: catId,
+        tags: tagList,
+        is_featured: editIsFeatured,
+        is_premium: editIsPremium,
+        is_active: editIsActive,
+      });
+
+      toast.success('Figurinha atualizada com sucesso!');
+      setEditingSticker(null);
+      loadAdminData();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao atualizar figurinha.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteSticker = async (id: string, name: string) => {
+    if (
+      !window.confirm(
+        `Excluir permanentemente a figurinha "${name}"?\n\nOs arquivos de imagem e todos os dados serão apagados definitivamente.`
+      )
+    )
       return;
     try {
-      await api.admin.deleteSticker(id, hard);
-      toast.success(hard ? 'Figurinha excluída.' : 'Figurinha desativada.');
+      await api.admin.deleteSticker(id, true);
+      toast.success('Figurinha excluída permanentemente!');
       loadAdminData();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao excluir figurinha.');
@@ -944,12 +1027,20 @@ export function AdminPage() {
                         </button>
                       </td>
                       <td className="py-2 text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() => handleDeleteSticker(s.id, false)}
+                            onClick={() => openEditSticker(s)}
+                            className="icon-btn h-7 w-7 text-[#8E7F70] hover:text-[#DFB992]"
+                            title="Editar figurinha"
+                          >
+                            <IconEdit size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSticker(s.id, s.name)}
                             className="icon-btn h-7 w-7 text-[#8E7F70] hover:text-rose-400"
-                            title="Desativar"
+                            title="Excluir permanentemente"
                           >
                             <IconTrash size={14} />
                           </button>
@@ -962,6 +1053,186 @@ export function AdminPage() {
             </div>
           </div>
         </div>
+
+        {/* Modal de Edição de Figurinha */}
+        {editingSticker && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-lg rounded-3xl border border-[#DFB992]/30 bg-[#151210] p-6 shadow-2xl text-[#F5EDE4] max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-[#DFB992]/15 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-10 shrink-0 overflow-hidden rounded-lg border border-[#DFB992]/30 bg-[#C2A385] p-1">
+                    <img
+                      src={mediaUrl(editingSticker.thumbnail_url)}
+                      alt=""
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-[#F5EDE4]">
+                      Editar Figurinha
+                    </h3>
+                    <p className="text-xs text-[#8E7F70]">
+                      /{editingSticker.slug}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingSticker(null)}
+                  disabled={savingEdit}
+                  className="rounded-full p-1.5 text-[#8E7F70] hover:text-[#F5EDE4] hover:bg-[#221E1B] transition"
+                  title="Fechar"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEditSticker} className="mt-5 space-y-4">
+                {/* Nome */}
+                <div>
+                  <label className="label">Nome da Figurinha</label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="input text-xs"
+                    required
+                  />
+                </div>
+
+                {/* Descrição */}
+                <div>
+                  <label className="label">Descrição (opcional)</label>
+                  <input
+                    type="text"
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    className="input text-xs"
+                    placeholder="Ex: Frase de bom dia delicada para stories"
+                  />
+                </div>
+
+                {/* Categoria Principal */}
+                <div>
+                  <label className="label">Categoria Principal</label>
+                  <select
+                    value={editParentCatId}
+                    onChange={(e) => {
+                      setEditParentCatId(e.target.value);
+                      setEditFolderId('');
+                    }}
+                    className="input text-xs"
+                    required
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Subpasta / Pasta */}
+                {(() => {
+                  const selCat = categories.find((c) => c.id === editParentCatId);
+                  const folders = selCat?.folders || [];
+                  return (
+                    <div>
+                      <label className="label flex items-center justify-between">
+                        <span>Pasta / Subpasta</span>
+                        <span className="text-[10px] text-[#DFB992] font-normal">opcional</span>
+                      </label>
+                      <select
+                        value={editFolderId}
+                        onChange={(e) => setEditFolderId(e.target.value)}
+                        className="input text-xs"
+                      >
+                        <option value="">
+                          Direto na raiz de {selCat?.name || 'Categoria'} (sem subpasta)
+                        </option>
+                        {folders.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            Pasta: {f.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })()}
+
+                {/* Tags */}
+                <div>
+                  <label className="label">Tags (separadas por vírgula)</label>
+                  <input
+                    type="text"
+                    value={editTags}
+                    onChange={(e) => setEditTags(e.target.value)}
+                    className="input text-xs"
+                    placeholder="bom dia, sol, cafe"
+                  />
+                </div>
+
+                {/* Checkboxes: Destaque, Premium, Ativo */}
+                <div className="space-y-2 pt-2 border-t border-[#DFB992]/10">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={editIsFeatured}
+                      onChange={(e) => setEditIsFeatured(e.target.checked)}
+                      className="h-4 w-4 rounded border-[#DFB992]/40 bg-[#1C1815] text-[#DFB992] focus:ring-[#DFB992]"
+                    />
+                    <span className="text-xs font-medium text-[#E6D5C3]">
+                      ✦ Destaque na página inicial
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 rounded-xl border border-[#DFB992]/30 bg-[#171412] p-2.5">
+                    <input
+                      type="checkbox"
+                      checked={editIsPremium}
+                      onChange={(e) => setEditIsPremium(e.target.checked)}
+                      className="h-4 w-4 rounded border-[#DFB992]/40 bg-[#1C1815] text-[#DFB992] focus:ring-[#DFB992]"
+                    />
+                    <span className="text-xs font-semibold text-[#DFB992]">
+                      ★ Figurinha Premium (exclusiva para assinantes)
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={editIsActive}
+                      onChange={(e) => setEditIsActive(e.target.checked)}
+                      className="h-4 w-4 rounded border-[#DFB992]/40 bg-[#1C1815] text-[#DFB992] focus:ring-[#DFB992]"
+                    />
+                    <span className="text-xs font-medium text-[#C8B6A6]">
+                      Figurinha visível no catálogo (Ativa)
+                    </span>
+                  </label>
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-[#DFB992]/15">
+                  <button
+                    type="button"
+                    onClick={() => setEditingSticker(null)}
+                    disabled={savingEdit}
+                    className="btn-secondary text-xs px-4 py-2"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingEdit}
+                    className="btn-primary text-xs px-5 py-2 font-semibold"
+                  >
+                    {savingEdit ? 'Salvando...' : 'Salvar Alterações'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Modal de Importação CSV */}
         {showCsvModal && (
