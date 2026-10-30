@@ -321,5 +321,16 @@ export const api = {
       request<void>(`/admin/categories/${id}`, { method: 'DELETE', auth: true }),
     reorderCategories: (ids: string[]) =>
       request<void>('/admin/categories/reorder', { method: 'POST', body: JSON.stringify({ ids }), auth: true }),
+    importStickersCsv: (file: File, baseDir?: string) => {
+      const form = new FormData();
+      form.append('file', file);
+      if (baseDir && baseDir.trim()) form.append('base_dir', baseDir.trim());
+      return request<{
+        total: number;
+        success_count: number;
+        error_count: number;
+        errors: string[];
+      }>('/admin/stickers/import-csv', { method: 'POST', body: form, auth: true });
+    },
   },
 };

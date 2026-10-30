@@ -48,6 +48,18 @@ export function AdminPage() {
   const [targetCoverId, setTargetCoverId] = useState<string | null>(null);
   const coverReplaceInputRef = useRef<HTMLInputElement>(null);
 
+  // CSV Import Modal state
+  const [showCsvModal, setShowCsvModal] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvBaseDir, setCsvBaseDir] = useState('');
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvResult, setCsvResult] = useState<{
+    total: number;
+    success_count: number;
+    error_count: number;
+    errors: string[];
+  } | null>(null);
+
   const loadAdminData = async () => {
     try {
       const [sData, stList, cList] = await Promise.all([
@@ -212,6 +224,49 @@ export function AdminPage() {
       setTargetCoverId(null);
       if (coverReplaceInputRef.current) coverReplaceInputRef.current.value = '';
     }
+  };
+
+  // CSV Import Handlers
+  const handleImportCsv = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!csvFile) {
+      toast.error('Selecione um arquivo CSV para importar.');
+      return;
+    }
+    setCsvImporting(true);
+    setCsvResult(null);
+    try {
+      const res = await api.admin.importStickersCsv(csvFile, csvBaseDir);
+      setCsvResult(res);
+      if (res.success_count > 0) {
+        toast.success(`${res.success_count} figurinhas importadas com sucesso!`);
+        loadAdminData();
+      } else {
+        toast.error('Nenhuma figurinha foi importada. Verifique os detalhes do erro.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao processar importação do CSV.');
+    } finally {
+      setCsvImporting(false);
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const csvContent =
+      'nome,arquivo,categoria,pasta,descricao,tags,premium,destaque\n' +
+      '"Bom Dia Sol Radiante","imagens_bomdia/sol_radiante.png","Bom dia","Manhã","Figurinha de sol com sorriso para stories matinais","bom dia, sol, manha, stories",nao,sim\n' +
+      '"Café da Manhã Quentinho","imagens_bomdia/cafe_quentinho.png","Bom dia","Café","Xícara de café fumegante estilizada","cafe, cafezinho, bom dia, rotina",nao,sim\n' +
+      '"Dente Sorridente","imagens_odontologia/dente.png","Odontologia","Ícones","Ilustração de dente fofo e limpo","odonto, dentista, dente, sorriso",nao,sim\n' +
+      '"Aparelho Estético","imagens_odontologia/aparelho.png","Odontologia","Ortodontia","Sorriso alinhado com aparelho ortodôntico","odonto, aparelho, ortodontia",sim,nao\n';
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'modelo_importacao_stickers.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Delete Category or Folder
@@ -677,7 +732,20 @@ export function AdminPage() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           {/* Create Sticker Form */}
           <div className="rounded-3xl border border-[#DFB992]/20 bg-[#141210] p-6 shadow-card lg:col-span-5">
-            <h2 className="font-serif text-xl font-bold text-[#F5EDE4]">Nova Figurinha</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-serif text-xl font-bold text-[#F5EDE4]">Nova Figurinha</h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCsvModal(true);
+                  setCsvResult(null);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#DFB992]/40 bg-[#DFB992]/10 px-3 py-1.5 text-xs font-semibold text-[#DFB992] hover:bg-[#DFB992]/20 hover:border-[#DFB992] transition"
+                title="Importar várias figurinhas em lote via planilha CSV"
+              >
+                <span>📥 Importar CSV</span>
+              </button>
+            </div>
             <form onSubmit={handleCreateSticker} className="mt-4 space-y-4">
               <div>
                 <label className="label">Imagem PNG (com transparência)</label>
@@ -893,6 +961,155 @@ export function AdminPage() {
             </div>
           </div>
         </div>
+
+        {/* Modal de Importação CSV */}
+        {showCsvModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-lg rounded-3xl border border-[#DFB992]/30 bg-[#151210] p-6 shadow-2xl text-[#F5EDE4] max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-[#DFB992]/15 pb-4">
+                <div>
+                  <h3 className="font-serif text-xl font-bold text-[#F5EDE4]">
+                    Importar Figurinhas via CSV
+                  </h3>
+                  <p className="mt-0.5 text-xs text-[#8E7F70]">
+                    Cadastre dezenas ou centenas de figurinhas automaticamente.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!csvImporting) {
+                      setShowCsvModal(false);
+                      setCsvFile(null);
+                      setCsvResult(null);
+                    }
+                  }}
+                  disabled={csvImporting}
+                  className="rounded-full p-1.5 text-[#8E7F70] hover:text-[#F5EDE4] hover:bg-[#221E1B] transition"
+                  title="Fechar"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleImportCsv} className="mt-5 space-y-4">
+                {/* Arquivo CSV */}
+                <div>
+                  <label className="label">Arquivo CSV (.csv)</label>
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    onChange={(e) => {
+                      setCsvFile(e.target.files?.[0] || null);
+                      setCsvResult(null);
+                    }}
+                    className="w-full text-xs text-[#C8B6A6] file:mr-3 file:rounded-full file:border-0 file:bg-[#DFB992] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#120F0D]"
+                    required
+                    disabled={csvImporting}
+                  />
+                  {csvFile && (
+                    <p className="mt-1 text-[11px] text-emerald-400">
+                      ✓ Selecionado: {csvFile.name} ({Math.round(csvFile.size / 1024)} KB)
+                    </p>
+                  )}
+                </div>
+
+                {/* Pasta Base Local */}
+                <div>
+                  <label className="label flex items-center justify-between">
+                    <span>Pasta base local das fotos</span>
+                    <span className="text-[10px] text-[#DFB992] font-normal">opcional</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={csvBaseDir}
+                    onChange={(e) => setCsvBaseDir(e.target.value)}
+                    placeholder="Ex: /Users/lucasfontenele/Downloads/figurinhas ou ./media"
+                    className="input text-xs font-mono"
+                    disabled={csvImporting}
+                  />
+                  <p className="mt-1 text-[11px] text-[#8E7F70]">
+                    Se o CSV tiver caminhos relativos (ex: <code className="text-[#DFB992]">imagens/sol.png</code>), o sistema buscará os arquivos dentro desta pasta no servidor/máquina local. Se deixar vazio ou usar URLs da internet, buscará no diretório padrão ou baixará online.
+                  </p>
+                </div>
+
+                {/* Instruções de Colunas e Download de Modelo */}
+                <div className="rounded-2xl border border-[#DFB992]/15 bg-[#0D0B0A] p-3.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-[#DFB992]">Colunas aceitas no CSV:</span>
+                    <button
+                      type="button"
+                      onClick={handleDownloadTemplate}
+                      className="text-[11px] text-[#DFB992] hover:underline flex items-center gap-1 font-semibold"
+                    >
+                      ⬇ Baixar Modelo CSV
+                    </button>
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-[#8E7F70] leading-relaxed">
+                    <code className="text-[#F5EDE4]">nome</code>,{' '}
+                    <code className="text-[#F5EDE4]">arquivo</code> (caminho local ou URL),{' '}
+                    <code className="text-[#F5EDE4]">categoria</code>,{' '}
+                    <code className="text-[#F5EDE4]">pasta</code> (subcategoria),{' '}
+                    <code className="text-[#F5EDE4]">tags</code>,{' '}
+                    <code className="text-[#F5EDE4]">premium</code> (sim/nao),{' '}
+                    <code className="text-[#F5EDE4]">destaque</code> (sim/nao),{' '}
+                    <code className="text-[#F5EDE4]">descricao</code>.
+                  </p>
+                </div>
+
+                {/* Resultado da Importação */}
+                {csvResult && (
+                  <div
+                    className={`rounded-2xl p-4 text-xs border ${
+                      csvResult.success_count > 0
+                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+                        : 'border-rose-500/30 bg-rose-500/10 text-rose-200'
+                    }`}
+                  >
+                    <div className="font-bold text-sm">
+                      {csvResult.success_count > 0 ? '✓ Importação Concluída!' : 'Falha na importação'}
+                    </div>
+                    <p className="mt-1">
+                      Total de linhas lidas: <span className="font-bold">{csvResult.total}</span> |{' '}
+                      Sucesso: <span className="font-bold text-emerald-400">{csvResult.success_count}</span> |{' '}
+                      Erros: <span className="font-bold text-rose-400">{csvResult.error_count}</span>
+                    </p>
+                    {csvResult.errors && csvResult.errors.length > 0 && (
+                      <div className="mt-3 max-h-36 overflow-y-auto space-y-1 border-t border-rose-500/20 pt-2 text-[11px] text-rose-300 font-mono">
+                        {csvResult.errors.map((err, i) => (
+                          <div key={i}>• {err}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Botões de Ação */}
+                <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-[#DFB992]/15">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCsvModal(false);
+                      setCsvFile(null);
+                      setCsvResult(null);
+                    }}
+                    disabled={csvImporting}
+                    className="btn-secondary text-xs px-4 py-2"
+                  >
+                    {csvResult ? 'Fechar' : 'Cancelar'}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={csvImporting || !csvFile}
+                    className="btn-primary text-xs px-5 py-2 font-semibold"
+                  >
+                    {csvImporting ? 'Processando e Importando...' : 'Iniciar Importação'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
         </>
         )}
       </main>
