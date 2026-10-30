@@ -51,6 +51,7 @@ export function AdminPage() {
   // CSV Import Modal state
   const [showCsvModal, setShowCsvModal] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvZipFile, setCsvZipFile] = useState<File | null>(null);
   const [csvBaseDir, setCsvBaseDir] = useState('');
   const [csvImporting, setCsvImporting] = useState(false);
   const [csvResult, setCsvResult] = useState<{
@@ -236,7 +237,7 @@ export function AdminPage() {
     setCsvImporting(true);
     setCsvResult(null);
     try {
-      const res = await api.admin.importStickersCsv(csvFile, csvBaseDir);
+      const res = await api.admin.importStickersCsv(csvFile, csvZipFile, csvBaseDir);
       setCsvResult(res);
       if (res.success_count > 0) {
         toast.success(`${res.success_count} figurinhas importadas com sucesso!`);
@@ -981,6 +982,7 @@ export function AdminPage() {
                     if (!csvImporting) {
                       setShowCsvModal(false);
                       setCsvFile(null);
+                      setCsvZipFile(null);
                       setCsvResult(null);
                     }
                   }}
@@ -995,7 +997,7 @@ export function AdminPage() {
               <form onSubmit={handleImportCsv} className="mt-5 space-y-4">
                 {/* Arquivo CSV */}
                 <div>
-                  <label className="label">Arquivo CSV (.csv)</label>
+                  <label className="label">1. Arquivo CSV (.csv)</label>
                   <input
                     type="file"
                     accept=".csv,text/csv"
@@ -1014,22 +1016,51 @@ export function AdminPage() {
                   )}
                 </div>
 
-                {/* Pasta Base Local */}
+                {/* Arquivo ZIP das Fotos (Recomendado para produção) */}
                 <div>
                   <label className="label flex items-center justify-between">
-                    <span>Pasta base local das fotos</span>
-                    <span className="text-[10px] text-[#DFB992] font-normal">opcional</span>
+                    <span>2. Arquivo ZIP com as fotos</span>
+                    <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                      Recomendado
+                    </span>
+                  </label>
+                  <input
+                    type="file"
+                    accept=".zip,application/zip"
+                    onChange={(e) => {
+                      setCsvZipFile(e.target.files?.[0] || null);
+                      setCsvResult(null);
+                    }}
+                    className="w-full text-xs text-[#C8B6A6] file:mr-3 file:rounded-full file:border-0 file:bg-[#DFB992]/20 file:border file:border-[#DFB992]/40 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#DFB992] hover:file:bg-[#DFB992]/30"
+                    disabled={csvImporting}
+                  />
+                  {csvZipFile ? (
+                    <p className="mt-1 text-[11px] text-emerald-400">
+                      ✓ Selecionado: {csvZipFile.name} ({Math.round(csvZipFile.size / 1024)} KB)
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[11px] text-[#8E7F70]">
+                      No seu computador, selecione a pasta de fotos (ex: <code className="text-[#DFB992]">imagens_bomdia</code>), clique com botão direito e escolha <strong>Comprimir / Compactar</strong> para criar o arquivo <code className="text-[#DFB992]">.zip</code> e enviar aqui.
+                    </p>
+                  )}
+                </div>
+
+                {/* Pasta Base Local (Opcional para ambiente local) */}
+                <div>
+                  <label className="label flex items-center justify-between">
+                    <span>Ou Pasta base local das fotos (apenas se rodando localmente)</span>
+                    <span className="text-[10px] text-[#8E7F70] font-normal">opcional</span>
                   </label>
                   <input
                     type="text"
                     value={csvBaseDir}
                     onChange={(e) => setCsvBaseDir(e.target.value)}
-                    placeholder="Ex: /Users/lucasfontenele/Downloads/figurinhas ou ./media"
+                    placeholder="Ex: /Users/lucasfontenele/Documents/... ou ./media"
                     className="input text-xs font-mono"
                     disabled={csvImporting}
                   />
                   <p className="mt-1 text-[11px] text-[#8E7F70]">
-                    Se o CSV tiver caminhos relativos (ex: <code className="text-[#DFB992]">imagens/sol.png</code>), o sistema buscará os arquivos dentro desta pasta no servidor/máquina local. Se deixar vazio ou usar URLs da internet, buscará no diretório padrão ou baixará online.
+                    Usado apenas quando o servidor roda diretamente no seu computador e pode acessar seus arquivos locais.
                   </p>
                 </div>
 
@@ -1091,6 +1122,7 @@ export function AdminPage() {
                     onClick={() => {
                       setShowCsvModal(false);
                       setCsvFile(null);
+                      setCsvZipFile(null);
                       setCsvResult(null);
                     }}
                     disabled={csvImporting}

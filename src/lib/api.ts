@@ -321,9 +321,10 @@ export const api = {
       request<void>(`/admin/categories/${id}`, { method: 'DELETE', auth: true }),
     reorderCategories: (ids: string[]) =>
       request<void>('/admin/categories/reorder', { method: 'POST', body: JSON.stringify({ ids }), auth: true }),
-    importStickersCsv: (file: File, baseDir?: string) => {
+    importStickersCsv: (file: File, zipFile?: File | null, baseDir?: string) => {
       const form = new FormData();
       form.append('file', file);
+      if (zipFile) form.append('zip_file', zipFile);
       if (baseDir && baseDir.trim()) form.append('base_dir', baseDir.trim());
       return request<{
         total: number;
