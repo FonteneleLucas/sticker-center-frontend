@@ -51,7 +51,7 @@ export function AdminPage() {
   // CSV Import Modal state
   const [showCsvModal, setShowCsvModal] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [csvZipFile, setCsvZipFile] = useState<File | null>(null);
+  const [csvZipFiles, setCsvZipFiles] = useState<File[]>([]);
   const [csvBaseDir, setCsvBaseDir] = useState('');
   const [csvImporting, setCsvImporting] = useState(false);
   const [csvResult, setCsvResult] = useState<{
@@ -237,7 +237,7 @@ export function AdminPage() {
     setCsvImporting(true);
     setCsvResult(null);
     try {
-      const res = await api.admin.importStickersCsv(csvFile, csvZipFile, csvBaseDir);
+      const res = await api.admin.importStickersCsv(csvFile, csvZipFiles, csvBaseDir);
       setCsvResult(res);
       if (res.success_count > 0) {
         toast.success(`${res.success_count} figurinhas importadas com sucesso!`);
@@ -982,7 +982,7 @@ export function AdminPage() {
                     if (!csvImporting) {
                       setShowCsvModal(false);
                       setCsvFile(null);
-                      setCsvZipFile(null);
+                      setCsvZipFiles([]);
                       setCsvResult(null);
                     }
                   }}
@@ -1016,10 +1016,10 @@ export function AdminPage() {
                   )}
                 </div>
 
-                {/* Arquivo ZIP das Fotos (Recomendado para produção) */}
+                {/* Arquivo(s) ZIP das Fotos (Recomendado para produção) */}
                 <div>
                   <label className="label flex items-center justify-between">
-                    <span>2. Arquivo ZIP com as fotos</span>
+                    <span>2. Arquivo(s) ZIP com as fotos (pode selecionar vários)</span>
                     <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
                       Recomendado
                     </span>
@@ -1027,20 +1027,30 @@ export function AdminPage() {
                   <input
                     type="file"
                     accept=".zip,application/zip"
+                    multiple
                     onChange={(e) => {
-                      setCsvZipFile(e.target.files?.[0] || null);
+                      setCsvZipFiles(Array.from(e.target.files || []));
                       setCsvResult(null);
                     }}
                     className="w-full text-xs text-[#C8B6A6] file:mr-3 file:rounded-full file:border-0 file:bg-[#DFB992]/20 file:border file:border-[#DFB992]/40 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#DFB992] hover:file:bg-[#DFB992]/30"
                     disabled={csvImporting}
                   />
-                  {csvZipFile ? (
-                    <p className="mt-1 text-[11px] text-emerald-400">
-                      ✓ Selecionado: {csvZipFile.name} ({Math.round(csvZipFile.size / 1024)} KB)
-                    </p>
+                  {csvZipFiles.length > 0 ? (
+                    <div className="mt-1 text-[11px] text-emerald-400 space-y-0.5">
+                      <p className="font-semibold">
+                        ✓ {csvZipFiles.length} arquivo(s) ZIP selecionado(s):
+                      </p>
+                      <ul className="text-[#C8B6A6] pl-2 list-disc list-inside">
+                        {csvZipFiles.map((f, idx) => (
+                          <li key={idx}>
+                            {f.name} ({Math.round(f.size / 1024)} KB)
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : (
                     <p className="mt-1 text-[11px] text-[#8E7F70]">
-                      No seu computador, selecione a pasta de fotos (ex: <code className="text-[#DFB992]">imagens_bomdia</code>), clique com botão direito e escolha <strong>Comprimir / Compactar</strong> para criar o arquivo <code className="text-[#DFB992]">.zip</code> e enviar aqui.
+                      Você pode selecionar <strong>um ou vários arquivos .zip</strong> ao mesmo tempo (ex: <code className="text-[#DFB992]">bomdia.zip</code>, <code className="text-[#DFB992]">odonto.zip</code>), ou comprimir todas as pastas juntas em um único zip.
                     </p>
                   )}
                 </div>
@@ -1122,7 +1132,7 @@ export function AdminPage() {
                     onClick={() => {
                       setShowCsvModal(false);
                       setCsvFile(null);
-                      setCsvZipFile(null);
+                      setCsvZipFiles([]);
                       setCsvResult(null);
                     }}
                     disabled={csvImporting}
