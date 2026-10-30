@@ -414,18 +414,36 @@ export function SubscriptionReturnPage() {
           {sub && (
             <>
               <div>Tipo: <span className="font-semibold">{sub.provider === 'mercadopago_pix' ? 'Pagamento Pix' : sub.provider === 'stripe' ? 'Cartão / Apple Pay (Stripe)' : 'Assinatura Recorrente'}</span></div>
-              <div>Plano: {sub.plan === 'annual' ? 'Anual' : 'Mensal'} ({sub.status})</div>
+              <div>Plano: <span className="font-semibold">{sub.plan === 'annual' ? 'Anual' : 'Mensal'}</span></div>
+              <div>
+                Status da renovação:{' '}
+                <span className={`font-semibold ${sub.status === 'cancelled' ? 'text-amber-400' : sub.status === 'authorized' ? 'text-green-400' : 'text-neutral-300'}`}>
+                  {sub.status === 'cancelled'
+                    ? 'Cancelada (não haverá novas cobranças)'
+                    : sub.status === 'authorized'
+                    ? 'Ativa (renovação automática)'
+                    : sub.status === 'paused'
+                    ? 'Pausada / Pagamento pendente'
+                    : sub.status}
+                </span>
+              </div>
               <div>Valor: {brl(sub.amount_cents)}{sub.coupon_code ? ` (cupom ${sub.coupon_code})` : ''}</div>
-              {sub.next_payment_date && <div>Próxima renovação: {fmtDate(sub.next_payment_date)}</div>}
+              {sub.status === 'authorized' && sub.next_payment_date && (
+                <div>Próxima renovação: {fmtDate(sub.next_payment_date)}</div>
+              )}
             </>
           )}
-          {user.premium_until && <div>Acesso válido até: {fmtDate(user.premium_until)}</div>}
+          {user.premium_until && (
+            <div className="pt-1 border-t border-[#DFB992]/10 text-[#DFB992]">
+              Acesso Premium garantido até: <span className="font-semibold">{fmtDate(user.premium_until)}</span>
+            </div>
+          )}
         </div>
         {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <Link to="/" className="btn-primary">Explorar figurinhas</Link>
           {!user.is_premium && <Link to="/assinar" className="btn-secondary">Assinar Premium</Link>}
-          {sub?.provider === 'stripe' && sub?.status === 'authorized' && (
+          {sub?.provider === 'stripe' && (
             <button className="btn-secondary" onClick={openStripePortal}>
               Gerenciar no Stripe
             </button>
