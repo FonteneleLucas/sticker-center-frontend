@@ -150,41 +150,105 @@ export function AdminPage() {
     if (filesToUpload.length === 0) return;
 
     setBatchUploading(true);
-    setBatchProgressText(`Enviando ${filesToUpload.length} arquivo(s)...`);
-    try {
-      const res = await api.admin.uploadBatch(
-        activeFolderView.category.id,
-        filesToUpload,
-        {
-          is_premium: batchIsPremium,
-          is_featured: batchIsFeatured,
-          tags: batchTags.trim() || undefined,
-          description: batchDescription.trim() || undefined,
+    setBatchResult(null);
+
+    // Agrupa arquivos em lotes seguros para não estourar o limite de 6MB do proxy da Netlify
+    const MAX_CHUNK_BYTES = 3.5 * 1024 * 1024; // 3.5 MB máx por requisição
+    const MAX_CHUNK_COUNT = 3; // no máx 3 arquivos por requisição
+
+    const chunks: File[][] = [];
+    let currentChunk: File[] = [];
+    let currentChunkBytes = 0;
+
+    for (const file of filesToUpload) {
+      const isZip = file.name.toLowerCase().endsWith('.zip');
+      // Arquivo zip vai sempre em um lote separado
+      if (isZip) {
+        if (currentChunk.length > 0) {
+          chunks.push(currentChunk);
+          currentChunk = [];
+          currentChunkBytes = 0;
         }
+        chunks.push([file]);
+        continue;
+      }
+
+      if (
+        currentChunk.length >= MAX_CHUNK_COUNT ||
+        (currentChunk.length > 0 && currentChunkBytes + file.size > MAX_CHUNK_BYTES)
+      ) {
+        chunks.push(currentChunk);
+        currentChunk = [file];
+        currentChunkBytes = file.size;
+      } else {
+        currentChunk.push(file);
+        currentChunkBytes += file.size;
+      }
+    }
+    if (currentChunk.length > 0) {
+      chunks.push(currentChunk);
+    }
+
+    let totalProcessed = 0;
+    let totalSuccess = 0;
+    let totalErrors = 0;
+    const accumulatedErrors: string[] = [];
+    let processedFilesCount = 0;
+
+    for (let c = 0; c < chunks.length; c++) {
+      const chunk = chunks[c];
+      setBatchProgressText(
+        `Processando ${processedFilesCount + 1} a ${Math.min(
+          processedFilesCount + chunk.length,
+          filesToUpload.length
+        )} de ${filesToUpload.length} arquivo(s)...`
       );
 
-      setBatchResult({
-        total: res.total,
-        success_count: res.success_count,
-        error_count: res.error_count,
-        errors: res.errors,
-      });
+      try {
+        const res = await api.admin.uploadBatch(
+          activeFolderView.category.id,
+          chunk,
+          {
+            is_premium: batchIsPremium,
+            is_featured: batchIsFeatured,
+            tags: batchTags.trim() || undefined,
+            description: batchDescription.trim() || undefined,
+          }
+        );
 
-      if (res.success_count > 0) {
-        toast.success(`${res.success_count} figurinha(s) cadastrada(s) com sucesso!`);
-      }
-      if (res.error_count > 0) {
-        toast.error(`${res.error_count} erro(s) durante o processamento.`);
+        totalProcessed += res.total;
+        totalSuccess += res.success_count;
+        totalErrors += res.error_count;
+        if (res.errors && res.errors.length > 0) {
+          accumulatedErrors.push(...res.errors);
+        }
+      } catch (err: any) {
+        totalErrors += chunk.length;
+        const msg = err.message || 'Erro de conexão no upload';
+        chunk.forEach((f) => accumulatedErrors.push(`${f.name}: ${msg}`));
       }
 
-      loadFolderStickers(activeFolderView.category.id, folderStickersSearch);
-      loadAdminData();
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao realizar upload em lote.');
-    } finally {
-      setBatchUploading(false);
-      setBatchProgressText('');
+      processedFilesCount += chunk.length;
     }
+
+    setBatchResult({
+      total: totalProcessed || filesToUpload.length,
+      success_count: totalSuccess,
+      error_count: totalErrors,
+      errors: accumulatedErrors,
+    });
+
+    if (totalSuccess > 0) {
+      toast.success(`${totalSuccess} figurinha(s) cadastrada(s) com sucesso!`);
+    }
+    if (totalErrors > 0) {
+      toast.error(`${totalErrors} arquivo(s) tiveram erro no upload.`);
+    }
+
+    loadFolderStickers(activeFolderView.category.id, folderStickersSearch);
+    loadAdminData();
+    setBatchUploading(false);
+    setBatchProgressText('');
   };
 
   const handleDragOver = (e: React.DragEvent) => {
