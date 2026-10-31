@@ -106,9 +106,12 @@ export function AdminPage() {
     errors: string[];
   } | null>(null);
   const batchFileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedStickerIds, setSelectedStickerIds] = useState<string[]>([]);
+  const [batchDeleting, setBatchDeleting] = useState(false);
 
   const openFolderWorkspace = (cat: Category, parent?: Category | null) => {
     setActiveFolderView({ category: cat, parentCategory: parent || null });
+    setSelectedStickerIds([]);
     const defaultTagStr = parent ? `${parent.name}, ${cat.name}` : cat.name;
     setBatchTags(defaultTagStr);
     setBatchDescription(cat.description || '');
@@ -120,6 +123,7 @@ export function AdminPage() {
   const closeFolderWorkspace = () => {
     setActiveFolderView(null);
     setFolderStickers([]);
+    setSelectedStickerIds([]);
     setBatchResult(null);
     loadAdminData();
   };
@@ -592,6 +596,50 @@ export function AdminPage() {
       if (activeFolderView) loadFolderStickers(activeFolderView.category.id, folderStickersSearch);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao excluir figurinha.');
+    }
+  };
+
+  const toggleSelectSticker = (id: string) => {
+    setSelectedStickerIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = (list: Sticker[]) => {
+    const listIds = list.map((s) => s.id);
+    const allSelected =
+      listIds.length > 0 && listIds.every((id) => selectedStickerIds.includes(id));
+    if (allSelected) {
+      setSelectedStickerIds((prev) => prev.filter((id) => !listIds.includes(id)));
+    } else {
+      setSelectedStickerIds((prev) => Array.from(new Set([...prev, ...listIds])));
+    }
+  };
+
+  const handleBatchDeleteStickers = async () => {
+    if (selectedStickerIds.length === 0) return;
+    const count = selectedStickerIds.length;
+    if (
+      !window.confirm(
+        `ATENÇÃO: Deseja excluir permanentemente ${count} figurinha(s) selecionada(s)?\n\nTodos os arquivos de imagem no bucket (Cloudflare R2) e registros no banco serão apagados definitivamente. Esta ação não pode ser desfeita.`
+      )
+    ) {
+      return;
+    }
+
+    setBatchDeleting(true);
+    try {
+      const res = await api.admin.batchDeleteStickers(selectedStickerIds);
+      toast.success(`${res.deleted_count} figurinha(s) excluída(s) permanentemente do bucket e banco!`);
+      setSelectedStickerIds([]);
+      loadAdminData();
+      if (activeFolderView) {
+        loadFolderStickers(activeFolderView.category.id, folderStickersSearch);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao excluir figurinhas selecionadas.');
+    } finally {
+      setBatchDeleting(false);
     }
   };
 
@@ -1100,6 +1148,34 @@ export function AdminPage() {
                 </div>
               </div>
 
+              {selectedStickerIds.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-500/30 bg-rose-950/40 px-4 py-2.5 text-xs text-rose-200">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-rose-100">
+                      {selectedStickerIds.length} figurinha(s) selecionada(s)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStickerIds([])}
+                      className="text-[11px] underline opacity-80 hover:opacity-100"
+                    >
+                      Desmarcar todas
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={batchDeleting}
+                    onClick={handleBatchDeleteStickers}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-3.5 py-1.5 font-bold text-white transition hover:bg-rose-500 disabled:opacity-50"
+                  >
+                    <IconTrash size={14} />
+                    {batchDeleting
+                      ? 'Excluindo do bucket e banco...'
+                      : `Excluir ${selectedStickerIds.length} Definitivamente`}
+                  </button>
+                </div>
+              )}
+
               {folderStickersLoading ? (
                 <div className="py-12 text-center text-xs text-[#8E7F70]">
                   Carregando figurinhas...
@@ -1113,6 +1189,18 @@ export function AdminPage() {
                   <table className="w-full text-left text-xs text-[#C8B6A6]">
                     <thead className="sticky top-0 bg-[#141210] text-[#9A8978]">
                       <tr className="border-b border-[#DFB992]/15">
+                        <th className="w-8 py-2 pl-2">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-[#DFB992]/40 bg-[#1B1714] text-[#C2A385] accent-[#C2A385] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                            checked={
+                              folderStickers.length > 0 &&
+                              folderStickers.every((s) => selectedStickerIds.includes(s.id))
+                            }
+                            onChange={() => toggleSelectAll(folderStickers)}
+                            title="Selecionar todas nesta pasta"
+                          />
+                        </th>
                         <th className="py-2">Preview</th>
                         <th className="py-2">Nome</th>
                         <th className="py-2">Status</th>
@@ -1122,85 +1210,99 @@ export function AdminPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#DFB992]/10">
-                      {folderStickers.map((s) => (
-                        <tr key={s.id} className="hover:bg-[#1B1714]">
-                          <td className="py-2">
-                            <div className="h-11 w-9 overflow-hidden rounded-lg border border-[#DFB992]/25 bg-[#C2A385] p-1">
-                              <img
-                                src={mediaUrl(s.thumbnail_url)}
-                                alt=""
-                                className="h-full w-full object-contain"
+                      {folderStickers.map((s) => {
+                        const isSelected = selectedStickerIds.includes(s.id);
+                        return (
+                          <tr
+                            key={s.id}
+                            className={isSelected ? 'bg-rose-950/25 hover:bg-rose-950/35' : 'hover:bg-[#1B1714]'}
+                          >
+                            <td className="w-8 py-2 pl-2">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-[#DFB992]/40 bg-[#1B1714] text-[#C2A385] accent-[#C2A385] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                                checked={isSelected}
+                                onChange={() => toggleSelectSticker(s.id)}
                               />
-                            </div>
-                          </td>
-                          <td className="py-2 font-medium text-[#F5EDE4]">
-                            {s.name}
-                            <div className="text-[10px] text-[#8E7F70]">
-                              /{s.slug} • {s.download_count} downloads • {s.copy_count} cópias
-                              {s.tags && s.tags.length > 0 && ` • Tags: ${s.tags.slice(0, 3).join(', ')}`}
-                            </div>
-                          </td>
-                          <td className="py-2">
-                            <button
-                              type="button"
-                              onClick={() => handleToggleActive(s)}
-                              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                                s.is_active
-                                  ? 'bg-emerald-500/20 text-emerald-300'
-                                  : 'bg-[#221E1B] text-[#8E7F70]'
-                              }`}
-                            >
-                              {s.is_active ? 'Ativo' : 'Inativo'}
-                            </button>
-                          </td>
-                          <td className="py-2">
-                            <button
-                              type="button"
-                              onClick={() => handleToggleFeatured(s)}
-                              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                                s.is_featured
-                                  ? 'bg-[#DFB992]/25 text-[#DFB992]'
-                                  : 'bg-[#221E1B] text-[#8E7F70]'
-                              }`}
-                            >
-                              {s.is_featured ? '✦ Sim' : 'Não'}
-                            </button>
-                          </td>
-                          <td className="py-2">
-                            <button
-                              type="button"
-                              onClick={() => handleTogglePremium(s)}
-                              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                                s.is_premium
-                                  ? 'border border-[#DFB992]/60 bg-[#DFB992]/20 text-[#DFB992]'
-                                  : 'bg-[#221E1B] text-[#8E7F70]'
-                              }`}
-                            >
-                              {s.is_premium ? '★ Premium' : 'Comum'}
-                            </button>
-                          </td>
-                          <td className="py-2 text-right">
-                            <div className="flex justify-end gap-1.5">
+                            </td>
+                            <td className="py-2">
+                              <div className="h-11 w-9 overflow-hidden rounded-lg border border-[#DFB992]/25 bg-[#C2A385] p-1">
+                                <img
+                                  src={mediaUrl(s.thumbnail_url)}
+                                  alt=""
+                                  className="h-full w-full object-contain"
+                                />
+                              </div>
+                            </td>
+                            <td className="py-2 font-medium text-[#F5EDE4]">
+                              {s.name}
+                              <div className="text-[10px] text-[#8E7F70]">
+                                /{s.slug} • {s.download_count} downloads • {s.copy_count} cópias
+                                {s.tags && s.tags.length > 0 && ` • Tags: ${s.tags.slice(0, 3).join(', ')}`}
+                              </div>
+                            </td>
+                            <td className="py-2">
                               <button
                                 type="button"
-                                onClick={() => openEditSticker(s)}
-                                className="icon-btn h-7 w-7 text-[#8E7F70] hover:text-[#DFB992]"
-                                title="Editar figurinha"
+                                onClick={() => handleToggleActive(s)}
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                  s.is_active
+                                    ? 'bg-emerald-500/20 text-emerald-300'
+                                    : 'bg-[#221E1B] text-[#8E7F70]'
+                                }`}
                               >
-                                <IconEdit size={14} />
+                                {s.is_active ? 'Ativo' : 'Inativo'}
                               </button>
+                            </td>
+                            <td className="py-2">
                               <button
                                 type="button"
-                                onClick={() => handleDeleteSticker(s.id, s.name)}
-                                className="icon-btn h-7 w-7 text-[#8E7F70] hover:text-rose-400"
-                                title="Excluir permanentemente"
+                                onClick={() => handleToggleFeatured(s)}
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                  s.is_featured
+                                    ? 'bg-[#DFB992]/25 text-[#DFB992]'
+                                    : 'bg-[#221E1B] text-[#8E7F70]'
+                                }`}
                               >
-                                <IconTrash size={14} />
+                                {s.is_featured ? '✦ Sim' : 'Não'}
                               </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="py-2">
+                              <button
+                                type="button"
+                                onClick={() => handleTogglePremium(s)}
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                  s.is_premium
+                                    ? 'border border-[#DFB992]/60 bg-[#DFB992]/20 text-[#DFB992]'
+                                    : 'bg-[#221E1B] text-[#8E7F70]'
+                                }`}
+                              >
+                                {s.is_premium ? '★ Premium' : 'Comum'}
+                              </button>
+                            </td>
+                            <td className="py-2 text-right">
+                              <div className="flex justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => openEditSticker(s)}
+                                  className="icon-btn h-7 w-7 text-[#8E7F70] hover:text-[#DFB992]"
+                                  title="Editar figurinha"
+                                >
+                                  <IconEdit size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSticker(s.id, s.name)}
+                                  className="icon-btn h-7 w-7 text-[#8E7F70] hover:text-rose-400"
+                                  title="Excluir permanentemente"
+                                >
+                                  <IconTrash size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1639,10 +1741,51 @@ export function AdminPage() {
             <h2 className="font-serif text-xl font-bold text-[#F5EDE4]">
               Figurinhas Cadastradas
             </h2>
+
+            {selectedStickerIds.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-500/30 bg-rose-950/40 px-4 py-2.5 text-xs text-rose-200">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-rose-100">
+                    {selectedStickerIds.length} figurinha(s) selecionada(s)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStickerIds([])}
+                    className="text-[11px] underline opacity-80 hover:opacity-100"
+                  >
+                    Desmarcar todas
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  disabled={batchDeleting}
+                  onClick={handleBatchDeleteStickers}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-3.5 py-1.5 font-bold text-white transition hover:bg-rose-500 disabled:opacity-50"
+                >
+                  <IconTrash size={14} />
+                  {batchDeleting
+                    ? 'Excluindo do bucket e banco...'
+                    : `Excluir ${selectedStickerIds.length} Definitivamente`}
+                </button>
+              </div>
+            )}
+
             <div className="mt-4 max-h-[600px] overflow-y-auto">
               <table className="w-full text-left text-xs text-[#C8B6A6]">
                 <thead className="sticky top-0 bg-[#141210] text-[#9A8978]">
                   <tr className="border-b border-[#DFB992]/15">
+                    <th className="w-8 py-2 pl-2">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-[#DFB992]/40 bg-[#1B1714] text-[#C2A385] accent-[#C2A385] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                        checked={
+                          stickers.length > 0 &&
+                          stickers.every((s) => selectedStickerIds.includes(s.id))
+                        }
+                        onChange={() => toggleSelectAll(stickers)}
+                        title="Selecionar todas desta lista"
+                      />
+                    </th>
                     <th className="py-2">Preview</th>
                     <th className="py-2">Nome</th>
                     <th className="py-2">Status</th>
@@ -1652,84 +1795,98 @@ export function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#DFB992]/10">
-                  {stickers.map((s) => (
-                    <tr key={s.id} className="hover:bg-[#1B1714]">
-                      <td className="py-2">
-                        <div className="h-11 w-9 overflow-hidden rounded-lg border border-[#DFB992]/25 bg-[#C2A385] p-1">
-                          <img
-                            src={mediaUrl(s.thumbnail_url)}
-                            alt=""
-                            className="h-full w-full object-contain"
+                  {stickers.map((s) => {
+                    const isSelected = selectedStickerIds.includes(s.id);
+                    return (
+                      <tr
+                        key={s.id}
+                        className={isSelected ? 'bg-rose-950/25 hover:bg-rose-950/35' : 'hover:bg-[#1B1714]'}
+                      >
+                        <td className="w-8 py-2 pl-2">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-[#DFB992]/40 bg-[#1B1714] text-[#C2A385] accent-[#C2A385] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                            checked={isSelected}
+                            onChange={() => toggleSelectSticker(s.id)}
                           />
-                        </div>
-                      </td>
-                      <td className="py-2 font-medium text-[#F5EDE4]">
-                        {s.name}
-                        <div className="text-[10px] text-[#8E7F70]">
-                          {s.category?.name || 'Sem categoria'} • {s.download_count} downloads • {s.copy_count} cópias
-                        </div>
-                      </td>
-                      <td className="py-2">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleActive(s)}
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                            s.is_active
-                              ? 'bg-emerald-500/20 text-emerald-300'
-                              : 'bg-[#221E1B] text-[#8E7F70]'
-                          }`}
-                        >
-                          {s.is_active ? 'Ativo' : 'Inativo'}
-                        </button>
-                      </td>
-                      <td className="py-2">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleFeatured(s)}
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                            s.is_featured
-                              ? 'bg-[#DFB992]/25 text-[#DFB992]'
-                              : 'bg-[#221E1B] text-[#8E7F70]'
-                          }`}
-                        >
-                          {s.is_featured ? '✦ Sim' : 'Não'}
-                        </button>
-                      </td>
-                      <td className="py-2">
-                        <button
-                          type="button"
-                          onClick={() => handleTogglePremium(s)}
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                            s.is_premium
-                              ? 'border border-[#DFB992]/60 bg-[#DFB992]/20 text-[#DFB992]'
-                              : 'bg-[#221E1B] text-[#8E7F70]'
-                          }`}
-                        >
-                          {s.is_premium ? '★ Premium' : 'Comum'}
-                        </button>
-                      </td>
-                      <td className="py-2 text-right">
-                        <div className="flex justify-end gap-1.5">
+                        </td>
+                        <td className="py-2">
+                          <div className="h-11 w-9 overflow-hidden rounded-lg border border-[#DFB992]/25 bg-[#C2A385] p-1">
+                            <img
+                              src={mediaUrl(s.thumbnail_url)}
+                              alt=""
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                        </td>
+                        <td className="py-2 font-medium text-[#F5EDE4]">
+                          {s.name}
+                          <div className="text-[10px] text-[#8E7F70]">
+                            {s.category?.name || 'Sem categoria'} • {s.download_count} downloads • {s.copy_count} cópias
+                          </div>
+                        </td>
+                        <td className="py-2">
                           <button
                             type="button"
-                            onClick={() => openEditSticker(s)}
-                            className="icon-btn h-7 w-7 text-[#8E7F70] hover:text-[#DFB992]"
-                            title="Editar figurinha"
+                            onClick={() => handleToggleActive(s)}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              s.is_active
+                                ? 'bg-emerald-500/20 text-emerald-300'
+                                : 'bg-[#221E1B] text-[#8E7F70]'
+                            }`}
                           >
-                            <IconEdit size={14} />
+                            {s.is_active ? 'Ativo' : 'Inativo'}
                           </button>
+                        </td>
+                        <td className="py-2">
                           <button
                             type="button"
-                            onClick={() => handleDeleteSticker(s.id, s.name)}
-                            className="icon-btn h-7 w-7 text-[#8E7F70] hover:text-rose-400"
-                            title="Excluir permanentemente"
+                            onClick={() => handleToggleFeatured(s)}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              s.is_featured
+                                ? 'bg-[#DFB992]/25 text-[#DFB992]'
+                                : 'bg-[#221E1B] text-[#8E7F70]'
+                            }`}
                           >
-                            <IconTrash size={14} />
+                            {s.is_featured ? '✦ Sim' : 'Não'}
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-2">
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePremium(s)}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              s.is_premium
+                                ? 'border border-[#DFB992]/60 bg-[#DFB992]/20 text-[#DFB992]'
+                                : 'bg-[#221E1B] text-[#8E7F70]'
+                            }`}
+                          >
+                            {s.is_premium ? '★ Premium' : 'Comum'}
+                          </button>
+                        </td>
+                        <td className="py-2 text-right">
+                          <div className="flex justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => openEditSticker(s)}
+                              className="icon-btn h-7 w-7 text-[#8E7F70] hover:text-[#DFB992]"
+                              title="Editar figurinha"
+                            >
+                              <IconEdit size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSticker(s.id, s.name)}
+                              className="icon-btn h-7 w-7 text-[#8E7F70] hover:text-rose-400"
+                              title="Excluir permanentemente"
+                            >
+                              <IconTrash size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

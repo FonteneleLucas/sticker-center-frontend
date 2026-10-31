@@ -307,6 +307,12 @@ export const api = {
     },
     deleteSticker: (id: string, hard = false) =>
       request<void>(`/admin/stickers/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE', auth: true }),
+    batchDeleteStickers: (ids: string[]) =>
+      request<{ deleted_count: number }>('/admin/stickers/batch-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+        auth: true,
+      }),
     listCategories: () => request<Category[]>('/admin/categories', { auth: true }),
     createCategory: (data: Partial<Category>) =>
       request<Category>('/admin/categories', { method: 'POST', body: JSON.stringify(data), auth: true }),
