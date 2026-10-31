@@ -293,7 +293,7 @@ export const api = {
       }),
     me: () => request<{ id: string; email: string }>('/admin/me', { auth: true }),
     stats: () => request<AdminStats>('/admin/stats', { auth: true }),
-    listStickers: (p: ListParams & { status?: 'all' | 'active' | 'inactive' }) =>
+    listStickers: (p: ListParams & { status?: 'all' | 'active' | 'inactive'; category_id?: string }) =>
       request<Page<Sticker>>(`/admin/stickers${qs(p)}`, { auth: true }),
     getSticker: (id: string) => request<Sticker>(`/admin/stickers/${id}`, { auth: true }),
     createSticker: (form: FormData) =>
@@ -338,6 +338,42 @@ export const api = {
         error_count: number;
         errors: string[];
       }>('/admin/stickers/import-csv', { method: 'POST', body: form, auth: true });
+    },
+    uploadBatch: (
+      categoryId: string,
+      files: File[],
+      options?: {
+        is_premium?: boolean;
+        is_featured?: boolean;
+        tags?: string;
+        description?: string;
+      }
+    ) => {
+      const form = new FormData();
+      files.forEach((f) => form.append('files', f));
+      if (options?.is_premium !== undefined) {
+        form.append('is_premium', options.is_premium ? 'true' : 'false');
+      }
+      if (options?.is_featured !== undefined) {
+        form.append('is_featured', options.is_featured ? 'true' : 'false');
+      }
+      if (options?.tags !== undefined) {
+        form.append('tags', options.tags);
+      }
+      if (options?.description !== undefined) {
+        form.append('description', options.description);
+      }
+      return request<{
+        total: number;
+        success_count: number;
+        error_count: number;
+        errors: string[];
+        stickers: Sticker[];
+      }>(`/admin/categories/${categoryId}/upload-batch`, {
+        method: 'POST',
+        body: form,
+        auth: true,
+      });
     },
   },
 };
