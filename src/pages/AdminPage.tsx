@@ -220,6 +220,67 @@ export function AdminPage() {
     }
   };
 
+  // Collapsed categories state (pastas colapsadas por padrão)
+  const [expandedCategoryIds, setExpandedCategoryIds] = useState<Record<string, boolean>>({});
+
+  const toggleCategoryExpanded = (catId: string) => {
+    setExpandedCategoryIds((prev) => ({
+      ...prev,
+      [catId]: !prev[catId],
+    }));
+  };
+
+  // New Subfolder Modal in Folder Workspace
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [newSubfolderName, setNewSubfolderName] = useState('');
+  const [newSubfolderCover, setNewSubfolderCover] = useState<File | null>(null);
+  const [creatingSubfolder, setCreatingSubfolder] = useState(false);
+
+  const handleCreateSubfolderInWorkspace = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeFolderView) return;
+    const rootCat = activeFolderView.parentCategory || activeFolderView.category;
+    if (!newSubfolderName.trim()) {
+      toast.error('Informe o nome da pasta.');
+      return;
+    }
+
+    setCreatingSubfolder(true);
+    try {
+      const createdFolder = await api.admin.createCategory({
+        name: newSubfolderName.trim(),
+        parent_id: rootCat.id,
+      });
+
+      if (newSubfolderCover) {
+        await api.admin.uploadCategoryCover(createdFolder.id, newSubfolderCover);
+      }
+
+      toast.success(`Pasta "${createdFolder.name}" criada com sucesso!`);
+      setShowNewFolderModal(false);
+      setNewSubfolderName('');
+      setNewSubfolderCover(null);
+
+      // Refresh categories
+      const updatedCats = await api.admin.listCategories();
+      setCategories(updatedCats);
+
+      // Find the updated root category and newly created folder
+      const updatedRoot = updatedCats.find((c) => c.id === rootCat.id) || rootCat;
+      const updatedCurrentFolder = updatedRoot.folders?.find((f) => f.id === createdFolder.id);
+
+      if (updatedCurrentFolder) {
+        openFolderWorkspace(updatedCurrentFolder, updatedRoot);
+      } else {
+        openFolderWorkspace(updatedRoot, null);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao criar pasta.');
+    } finally {
+      setCreatingSubfolder(false);
+    }
+  };
+
   const loadAdminData = async () => {
     try {
       const [sData, stList, cList] = await Promise.all([
@@ -785,16 +846,27 @@ export function AdminPage() {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTargetCoverId(activeFolderView.category.id);
-                    coverReplaceInputRef.current?.click();
-                  }}
-                  className="rounded-full border border-[#DFB992]/30 px-3.5 py-1.5 text-xs font-medium text-[#DFB992] hover:bg-[#DFB992]/15 transition shrink-0"
-                >
-                  Trocar Capa
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewFolderModal(true)}
+                    className="rounded-full bg-[#DFB992] px-3.5 py-1.5 text-xs font-bold text-[#120F0D] hover:bg-[#F2DEC9] transition flex items-center gap-1.5 shrink-0 shadow-sm"
+                    title="Cadastrar uma nova pasta/subpasta dentro desta categoria"
+                  >
+                    <IconPlus size={14} />
+                    <span>+ Nova Pasta</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTargetCoverId(activeFolderView.category.id);
+                      coverReplaceInputRef.current?.click();
+                    }}
+                    className="rounded-full border border-[#DFB992]/30 px-3.5 py-1.5 text-xs font-medium text-[#DFB992] hover:bg-[#DFB992]/15 transition shrink-0"
+                  >
+                    Trocar Capa
+                  </button>
+                </div>
               </div>
 
               {/* Sibling / Child Folders Quick Switcher */}
@@ -802,14 +874,14 @@ export function AdminPage() {
                 const rootCat = activeFolderView.parentCategory || activeFolderView.category;
                 const folders = rootCat.folders || [];
 
-                if (folders.length === 0) return null;
-
                 return (
-                  <div className="mt-4 pt-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#DFB992]/80 block mb-2">
-                      Pastas de {rootCat.name}:
-                    </span>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="mt-4 pt-3 border-t border-[#DFB992]/10">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#DFB992]/80">
+                        Pastas de {rootCat.name} ({folders.length}):
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         onClick={() => openFolderWorkspace(rootCat, null)}
@@ -837,6 +909,16 @@ export function AdminPage() {
                           <span className="opacity-70 text-[10px]">({f.sticker_count})</span>
                         </button>
                       ))}
+
+                      <button
+                        type="button"
+                        onClick={() => setShowNewFolderModal(true)}
+                        className="rounded-full border border-dashed border-[#DFB992]/40 bg-[#DFB992]/10 px-3 py-1 text-xs font-semibold text-[#DFB992] hover:bg-[#DFB992]/20 transition flex items-center gap-1"
+                        title="Cadastrar uma nova pasta/subpasta nesta categoria"
+                      >
+                        <IconPlus size={12} />
+                        <span>Nova Pasta</span>
+                      </button>
                     </div>
                   </div>
                 );
@@ -1293,6 +1375,19 @@ export function AdminPage() {
                         <p className="text-[11px] text-[#8E7F70]">
                           /{cat.slug} • {cat.folders?.length || 0} pastas
                         </p>
+                        {cat.folders && cat.folders.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => toggleCategoryExpanded(cat.id)}
+                            className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-[#DFB992] hover:underline"
+                          >
+                            <span>
+                              {expandedCategoryIds[cat.id]
+                                ? '▼ Ocultar Pastas'
+                                : `▶ Ver Pastas (${cat.folders.length})`}
+                            </span>
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -1327,38 +1422,36 @@ export function AdminPage() {
                     </div>
                   </div>
 
-                  {/* Folders (Subpastas) inside this Category */}
-                  {cat.folders && cat.folders.length > 0 && (
+                  {/* Folders (Subpastas) inside this Category - Colapsadas por padrão e apenas com título */}
+                  {expandedCategoryIds[cat.id] && cat.folders && cat.folders.length > 0 && (
                     <div className="mt-3.5 border-t border-[#DFB992]/10 pt-3">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#DFB992]/80">
-                        Pastas ({cat.folders.length})
-                      </span>
-                      <div className="mt-2 space-y-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-[#DFB992]/80">
+                          Pastas de {cat.name} ({cat.folders.length})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggleCategoryExpanded(cat.id)}
+                          className="text-[10px] text-[#8E7F70] hover:text-[#F5EDE4]"
+                        >
+                          Recolher ▲
+                        </button>
+                      </div>
+                      <div className="space-y-1.5">
                         {cat.folders.map((f) => (
                           <div
                             key={f.id}
-                            className="flex items-center justify-between rounded-xl bg-[#12100E] px-3 py-2 text-xs"
+                            className="flex items-center justify-between rounded-xl bg-[#12100E] px-3.5 py-2 text-xs border border-[#DFB992]/10 hover:border-[#DFB992]/25 transition"
                           >
-                            <div className="flex items-center gap-2.5">
-                              <div className="h-8 w-11 shrink-0 overflow-hidden rounded-lg border border-[#DFB992]/15 bg-[#090807]">
-                                {f.thumbnail_url ? (
-                                  <img
-                                    src={mediaUrl(f.thumbnail_url)}
-                                    alt={f.name}
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center text-[9px] text-[#8E7F70]">
-                                    Sem capa
-                                  </div>
-                                )}
-                              </div>
-                              <div>
-                                <span className="font-semibold text-[#F5EDE4]">{f.name}</span>
-                                <span className="ml-2 text-[10px] text-[#8E7F70]">
-                                  ({f.sticker_count} figurinhas)
-                                </span>
-                              </div>
+                            {/* Mostrar apenas o título da pasta */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-[#DFB992]">
+                                <IconFolder size={14} />
+                              </span>
+                              <span className="font-semibold text-[#F5EDE4]">{f.name}</span>
+                              <span className="text-[10px] text-[#8E7F70]">
+                                ({f.sticker_count} figurinhas)
+                              </span>
                             </div>
 
                             <div className="flex items-center gap-1.5">
@@ -2014,6 +2107,84 @@ export function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* Modal de Nova Subpasta (criada diretamente no Workspace da Categoria/Pasta) */}
+        {showNewFolderModal && activeFolderView && (() => {
+          const rootCat = activeFolderView.parentCategory || activeFolderView.category;
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+              <div className="w-full max-w-md rounded-3xl border border-[#DFB992]/30 bg-[#151210] p-6 shadow-2xl text-[#F5EDE4]">
+                <div className="flex items-center justify-between border-b border-[#DFB992]/15 pb-4">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[#DFB992]">
+                      <IconFolder size={20} />
+                    </span>
+                    <div>
+                      <h3 className="font-serif text-lg font-bold text-[#F5EDE4]">
+                        Nova Pasta / Subpasta
+                      </h3>
+                      <p className="text-xs text-[#8E7F70]">
+                        Dentro da categoria: <span className="text-[#DFB992] font-semibold">{rootCat.name}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewFolderModal(false)}
+                    disabled={creatingSubfolder}
+                    className="rounded-full p-1.5 text-[#8E7F70] hover:text-[#F5EDE4] hover:bg-[#221E1B] transition"
+                    title="Fechar"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateSubfolderInWorkspace} className="mt-5 space-y-4">
+                  <div>
+                    <label className="label">Nome da Pasta</label>
+                    <input
+                      type="text"
+                      value={newSubfolderName}
+                      onChange={(e) => setNewSubfolderName(e.target.value)}
+                      className="input text-xs"
+                      placeholder="Ex: Ortodontia, HOF, Bom dia..."
+                      required
+                      autoFocus
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label">Foto de Capa da Pasta (opcional)</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setNewSubfolderCover(e.target.files?.[0] || null)}
+                      className="w-full text-xs text-[#C8B6A6] file:mr-3 file:rounded-full file:border-0 file:bg-[#DFB992] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#120F0D]"
+                    />
+                  </div>
+
+                  <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-[#DFB992]/15">
+                    <button
+                      type="button"
+                      onClick={() => setShowNewFolderModal(false)}
+                      disabled={creatingSubfolder}
+                      className="btn-secondary text-xs px-4 py-2"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={creatingSubfolder}
+                      className="btn-primary text-xs px-5 py-2 font-semibold"
+                    >
+                      {creatingSubfolder ? 'Criando pasta...' : '+ Criar Pasta'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          );
+        })()}
         </>
         )}
       </main>
