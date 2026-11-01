@@ -99,6 +99,7 @@ export function AdminPage() {
   const [batchDescription, setBatchDescription] = useState('');
   const [batchUploading, setBatchUploading] = useState(false);
   const [batchProgressText, setBatchProgressText] = useState('');
+  const [batchProgressPercent, setBatchProgressPercent] = useState(0);
   const [batchResult, setBatchResult] = useState<{
     total: number;
     success_count: number;
@@ -150,6 +151,8 @@ export function AdminPage() {
     if (filesToUpload.length === 0) return;
 
     setBatchUploading(true);
+    setBatchProgressPercent(5);
+    setBatchProgressText(`Iniciando upload de ${filesToUpload.length} arquivo(s)...`);
     setBatchResult(null);
 
     // Agrupa arquivos em lotes seguros para não estourar o limite de 6MB do proxy da Netlify
@@ -197,11 +200,15 @@ export function AdminPage() {
 
     for (let c = 0; c < chunks.length; c++) {
       const chunk = chunks[c];
+      const startNum = processedFilesCount + 1;
+      const endNum = Math.min(processedFilesCount + chunk.length, filesToUpload.length);
+      const percent = Math.min(
+        92,
+        Math.round((processedFilesCount / filesToUpload.length) * 88) + 6
+      );
+      setBatchProgressPercent(percent);
       setBatchProgressText(
-        `Processando ${processedFilesCount + 1} a ${Math.min(
-          processedFilesCount + chunk.length,
-          filesToUpload.length
-        )} de ${filesToUpload.length} arquivo(s)...`
+        `Processando ${startNum === endNum ? `arquivo ${startNum}` : `arquivos ${startNum} a ${endNum}`} de ${filesToUpload.length}...`
       );
 
       try {
@@ -231,6 +238,9 @@ export function AdminPage() {
       processedFilesCount += chunk.length;
     }
 
+    setBatchProgressPercent(100);
+    setBatchProgressText('Finalizando e atualizando pasta...');
+
     setBatchResult({
       total: totalProcessed || filesToUpload.length,
       success_count: totalSuccess,
@@ -247,8 +257,12 @@ export function AdminPage() {
 
     loadFolderStickers(activeFolderView.category.id, folderStickersSearch);
     loadAdminData();
-    setBatchUploading(false);
-    setBatchProgressText('');
+
+    setTimeout(() => {
+      setBatchUploading(false);
+      setBatchProgressText('');
+      setBatchProgressPercent(0);
+    }, 600);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -1123,14 +1137,34 @@ export function AdminPage() {
                 }`}
               >
                 {batchUploading ? (
-                  <div className="space-y-3">
-                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-[#DFB992] border-t-transparent" />
-                    <p className="text-xs font-semibold text-[#DFB992]">
-                      {batchProgressText || 'Processando e salvando figurinhas...'}
-                    </p>
-                    <p className="text-[11px] text-[#8E7F70]">
-                      Gerando otimizações, miniaturas e marcas d'água. Por favor, aguarde.
-                    </p>
+                  <div className="w-full max-w-md mx-auto space-y-4 py-2">
+                    <div className="relative mx-auto flex h-14 w-14 items-center justify-center">
+                      <div className="absolute inset-0 animate-ping rounded-full bg-[#DFB992]/20" />
+                      <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#DFB992] border-t-transparent shadow-lg" />
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-bold text-[#F5EDE4]">
+                        {batchProgressText || 'Processando e salvando figurinhas...'}
+                      </p>
+                      <p className="mt-1 text-xs text-[#8E7F70]">
+                        Otimizando arquivos, gerando miniaturas e marcas d'água no bucket. Por favor, aguarde...
+                      </p>
+                    </div>
+
+                    {/* Barra de Progresso com porcentagem */}
+                    <div className="w-full space-y-1.5 pt-1">
+                      <div className="flex justify-between text-[11px] font-semibold text-[#DFB992]">
+                        <span>Progresso do upload</span>
+                        <span>{batchProgressPercent}%</span>
+                      </div>
+                      <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#221E1B] p-0.5 border border-[#DFB992]/25">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#C2A385] to-[#DFB992] transition-all duration-300 ease-out"
+                          style={{ width: `${Math.max(5, batchProgressPercent)}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -2406,6 +2440,30 @@ export function AdminPage() {
             </div>
           );
         })()}
+
+        {/* Floating Upload Progress Banner */}
+        {batchUploading && (
+          <div className="fixed bottom-6 right-6 z-50 flex w-80 sm:w-96 flex-col gap-2.5 rounded-2xl border border-[#DFB992]/40 bg-[#161311]/95 p-4 shadow-2xl backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#DFB992] border-t-transparent flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-[#F5EDE4] truncate">
+                  {batchProgressText || 'Processando figurinhas...'}
+                </p>
+                <p className="text-[10px] text-[#8E7F70]">
+                  Não feche esta página até a conclusão
+                </p>
+              </div>
+              <span className="text-xs font-bold text-[#DFB992]">{batchProgressPercent}%</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[#241F1B] border border-[#DFB992]/20">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#C2A385] to-[#DFB992] transition-all duration-300 ease-out"
+                style={{ width: `${Math.max(5, batchProgressPercent)}%` }}
+              />
+            </div>
+          </div>
+        )}
         </>
         )}
       </main>
