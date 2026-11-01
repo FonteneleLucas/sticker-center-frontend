@@ -36,7 +36,7 @@ export function AdminPage() {
   const [selectedFolderId, setSelectedFolderId] = useState('');
   const [tags, setTags] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
-  const [isPremium, setIsPremium] = useState(false);
+  const [isPremium, setIsPremium] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -93,7 +93,7 @@ export function AdminPage() {
 
   // Drag & Drop batch upload state
   const [isDraggingBatch, setIsDraggingBatch] = useState(false);
-  const [batchIsPremium, setBatchIsPremium] = useState(false);
+  const [batchIsPremium, setBatchIsPremium] = useState(true);
   const [batchIsFeatured, setBatchIsFeatured] = useState(false);
   const [batchTags, setBatchTags] = useState('');
   const [batchDescription, setBatchDescription] = useState('');
@@ -478,7 +478,7 @@ export function AdminPage() {
       setTags('');
       setFile(null);
       setIsFeatured(false);
-      setIsPremium(false);
+      setIsPremium(true);
       loadAdminData();
     } catch (err: any) {
       toast.error(err.message || 'Falha ao cadastrar figurinha.');
