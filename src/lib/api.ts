@@ -370,7 +370,10 @@ export const api = {
         form.append('description', options.description);
       }
       return request<{
+        job_id?: string;
+        status?: string;
         total: number;
+        processed?: number;
         success_count: number;
         error_count: number;
         errors: string[];
@@ -381,5 +384,19 @@ export const api = {
         auth: true,
       });
     },
+    getUploadJob: (jobId: string) =>
+      request<{
+        id: string;
+        category_id: string;
+        status: 'processing' | 'completed' | 'failed';
+        total_files: number;
+        processed_files: number;
+        success_count: number;
+        error_count: number;
+        errors: string[];
+        created_at: string;
+        updated_at: string;
+      }>(`/admin/upload-jobs/${jobId}`, { auth: true }),
   },
 };
+

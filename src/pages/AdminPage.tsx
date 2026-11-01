@@ -155,9 +155,9 @@ export function AdminPage() {
     setBatchProgressText(`Iniciando upload de ${filesToUpload.length} arquivo(s)...`);
     setBatchResult(null);
 
-    // Agrupa arquivos em lotes seguros para não estourar o limite de 6MB do proxy da Netlify
-    const MAX_CHUNK_BYTES = 3.5 * 1024 * 1024; // 3.5 MB máx por requisição
-    const MAX_CHUNK_COUNT = 3; // no máx 3 arquivos por requisição
+    // Agrupa arquivos em lotes seguros de tamanho
+    const MAX_CHUNK_BYTES = 10 * 1024 * 1024; // 10 MB máx por requisição
+    const MAX_CHUNK_COUNT = 15; // até 15 arquivos por requisição
 
     const chunks: File[][] = [];
     let currentChunk: File[] = [];
@@ -208,7 +208,7 @@ export function AdminPage() {
       );
       setBatchProgressPercent(percent);
       setBatchProgressText(
-        `Processando ${startNum === endNum ? `arquivo ${startNum}` : `arquivos ${startNum} a ${endNum}`} de ${filesToUpload.length}...`
+        `Enviando ${startNum === endNum ? `arquivo ${startNum}` : `arquivos ${startNum} a ${endNum}`} de ${filesToUpload.length}...`
       );
 
       try {
@@ -223,11 +223,43 @@ export function AdminPage() {
           }
         );
 
-        totalProcessed += res.total;
-        totalSuccess += res.success_count;
-        totalErrors += res.error_count;
-        if (res.errors && res.errors.length > 0) {
-          accumulatedErrors.push(...res.errors);
+        if (res.job_id && res.status === 'processing') {
+          // Acompanha o processamento do job em background no servidor
+          let job = await api.admin.getUploadJob(res.job_id);
+          while (job.status === 'processing') {
+            await new Promise((resolve) => setTimeout(resolve, 1200));
+            try {
+              job = await api.admin.getUploadJob(res.job_id);
+            } catch {
+              // Em caso de instabilidade pontual de rede no polling, continua tentando
+              continue;
+            }
+            const pTotal = job.total_files || chunk.length || 1;
+            const pDone = job.processed_files;
+            const chunkProgress = Math.min(1, pDone / pTotal);
+            const overallPct = Math.min(
+              96,
+              Math.round(((processedFilesCount + chunkProgress * chunk.length) / filesToUpload.length) * 88) + 6
+            );
+            setBatchProgressPercent(overallPct);
+            setBatchProgressText(
+              `Processando figurinhas no servidor (${pDone} de ${pTotal})...`
+            );
+          }
+
+          totalProcessed += job.total_files;
+          totalSuccess += job.success_count;
+          totalErrors += job.error_count;
+          if (job.errors && job.errors.length > 0) {
+            accumulatedErrors.push(...job.errors);
+          }
+        } else {
+          totalProcessed += res.total;
+          totalSuccess += res.success_count;
+          totalErrors += res.error_count;
+          if (res.errors && res.errors.length > 0) {
+            accumulatedErrors.push(...res.errors);
+          }
         }
       } catch (err: any) {
         totalErrors += chunk.length;
