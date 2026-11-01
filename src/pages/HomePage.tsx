@@ -175,7 +175,7 @@ export function HomePage() {
     <div className="flex min-h-screen flex-col bg-[#090807] text-[#F5EDE4]">
       <Header hideMobileSearch />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-3.5 py-5 sm:px-6 sm:py-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-3.5 pt-4 pb-24 sm:px-6 sm:py-8 sm:pb-8">
         {!activeCategory ? (
           /* ================= INITIAL SCREEN: HERO + NETFLIX-STYLE CATEGORIES ================= */
           <>
@@ -250,7 +250,7 @@ export function HomePage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-[#090807] via-[#090807]/75 via-45% to-black/20" />
 
                       {/* Card Content Overlay */}
-                      <div className="relative z-10 flex h-full flex-col justify-end sm:justify-between">
+                      <div className="relative z-10 flex h-full flex-col justify-end pb-10 sm:justify-between sm:pb-0">
                         <div className="hidden sm:flex items-start justify-between">
                           <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#DFB992]/30 bg-[#12100E]/85 text-[#DFB992] backdrop-blur-md">
                             <CategoryIcon slug={cat.slug} name={cat.name} size={16} />
@@ -273,8 +273,9 @@ export function HomePage() {
                             {cat.name}
                           </h3>
                           {cat.folders && cat.folders.length > 0 ? (
-                            <p className="mt-1 hidden line-clamp-2 text-[11px] leading-tight text-[#DFB992]/90 sm:block">
-                              {cat.folders.map((f) => f.name).join(' • ')}
+                            <p className="mt-1 hidden line-clamp-1 text-[11px] leading-tight text-[#DFB992]/90 sm:block">
+                              {cat.folders.slice(0, 3).map((f) => f.name).join(' • ')}
+                              {cat.folders.length > 3 ? '...' : ''}
                             </p>
                           ) : cat.description ? (
                             <p className="mt-1 hidden line-clamp-2 text-[11px] leading-tight text-[#A8988B] sm:block">
@@ -396,7 +397,7 @@ export function HomePage() {
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-[#090807] via-[#090807]/75 via-45% to-black/20" />
 
-                          <div className="relative z-10 flex h-full flex-col justify-end sm:justify-between">
+                          <div className="relative z-10 flex h-full flex-col justify-end pb-10 sm:justify-between sm:pb-0">
                             <div className="hidden sm:flex justify-between">
                               <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#DFB992]/30 bg-[#12100E]/80 text-[#DFB992]">
                                 <IconFolder size={12} />

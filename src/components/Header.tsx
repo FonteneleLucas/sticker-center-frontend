@@ -136,11 +136,11 @@ export function Header({
       {/* Mobile Bottom Navigation Bar: Inicio | Explorar | Favoritos | Novidades */}
       <nav
         aria-label="Navegação principal mobile"
-        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#DFB992]/15 bg-[#0C0A09]/95 px-1 py-1.5 pb-safe backdrop-blur-lg md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#DFB992]/15 bg-[#0C0A09]/95 px-1 pt-1 pb-[max(calc(env(safe-area-inset-bottom,0px)-10px),4px)] backdrop-blur-lg md:hidden"
       >
         <Link
           to="/"
-          className={`flex flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[10px] font-medium transition ${
+          className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-medium transition touch-manipulation select-none active:scale-95 ${
             isActive('/') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
           }`}
         >
@@ -150,7 +150,7 @@ export function Header({
 
         <Link
           to="/explorar"
-          className={`flex flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[10px] font-medium transition ${
+          className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-medium transition touch-manipulation select-none active:scale-95 ${
             isActive('/explorar') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
           }`}
         >
@@ -160,20 +160,20 @@ export function Header({
 
         <Link
           to="/favoritos"
-          className={`relative flex flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[10px] font-medium transition ${
+          className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-medium transition touch-manipulation select-none active:scale-95 ${
             isActive('/favoritos') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
           }`}
         >
           <IconHeart size={20} filled={isActive('/favoritos')} />
           <span>Favoritos</span>
           {favs.length > 0 && (
-            <span className="absolute right-3 top-0.5 h-2 w-2 rounded-full bg-[#DFB992]" />
+            <span className="absolute right-3 top-1 h-2 w-2 rounded-full bg-[#DFB992]" />
           )}
         </Link>
 
         <Link
           to="/novidades"
-          className={`flex flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[10px] font-medium transition ${
+          className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-medium transition touch-manipulation select-none active:scale-95 ${
             isActive('/novidades') ? 'text-[#DFB992]' : 'text-[#8E7F70] hover:text-[#F5EDE4]'
           }`}
         >
