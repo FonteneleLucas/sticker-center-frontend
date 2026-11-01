@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { IconShieldCheck, IconLock, IconBadgeCheck, IconStripe } from '../components/Icons';
 import { api, type PlansInfo, type Quote, type PixCheckoutData } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useDocumentMeta } from '../lib/seo';
@@ -281,7 +282,7 @@ export function PremiumPage() {
                   }`}
                 >
                   <div>
-                    <div className="text-sm font-semibold text-[#F5EDE4]">Cartão ou Conta Mercado Pago</div>
+                    <div className="text-sm font-semibold text-[#F5EDE4]">Cartão de crédito ou Apple Pay</div>
                     <div className="text-[11px] text-[#8E7F70]">Renovação automática</div>
                   </div>
                 </button>
@@ -327,9 +328,42 @@ export function PremiumPage() {
                   ? 'Gerar código Pix'
                   : 'Pagar com Cartão'}
               </button>
-              {paymentMethod === 'card' && finalCents > 0 && (
-                <p className="mt-2 text-center text-xs text-[#8E7F70]">Você será redirecionado ao Mercado Pago.</p>
-              )}
+
+              {/* Selos de Confiança e Segurança */}
+              <div className="mt-6 border-t border-[#DFB992]/10 pt-5">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="flex items-center gap-2.5 rounded-lg bg-[#120F0D] px-3 py-2 text-left">
+                    <IconShieldCheck size={20} className="shrink-0 text-[#DFB992]" />
+                    <div>
+                      <div className="text-xs font-medium text-[#F5EDE4]">Site Confiável</div>
+                      <div className="text-[10px] text-[#8E7F70]">100% verificado</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 rounded-lg bg-[#120F0D] px-3 py-2 text-left">
+                    <IconBadgeCheck size={20} className="shrink-0 text-[#DFB992]" />
+                    <div>
+                      <div className="text-xs font-medium text-[#F5EDE4]">Compra Garantida</div>
+                      <div className="text-[10px] text-[#8E7F70]">Acesso imediato</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 rounded-lg bg-[#120F0D] px-3 py-2 text-left">
+                    <IconLock size={20} className="shrink-0 text-[#DFB992]" />
+                    <div>
+                      <div className="text-xs font-medium text-[#F5EDE4]">Ambiente Seguro</div>
+                      <div className="text-[10px] text-[#8E7F70]">Criptografia SSL</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-center justify-center gap-2 text-xs text-[#8E7F70]">
+                  <span>Pagamento seguro via</span>
+                  <div className="inline-flex items-center rounded-md border border-[#DFB992]/20 bg-[#120F0D] px-2.5 py-1 text-[#635BFF]">
+                    <IconStripe size={48} />
+                  </div>
+                </div>
+              </div>
             </div>
           </>
         )}
