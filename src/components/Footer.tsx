@@ -18,19 +18,19 @@ export function Footer() {
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
-          <Link to="/" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
+          <Link to="/" className="hidden text-[#C8B6A6] transition hover:text-[#DFB992] sm:inline-block">
             Início
           </Link>
-          <Link to="/explorar" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
+          <Link to="/explorar" className="hidden text-[#C8B6A6] transition hover:text-[#DFB992] sm:inline-block">
             Explorar
           </Link>
-          <Link to="/novidades" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
+          <Link to="/novidades" className="hidden text-[#C8B6A6] transition hover:text-[#DFB992] sm:inline-block">
             Novidades
           </Link>
-          <Link to="/favoritos" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
+          <Link to="/favoritos" className="hidden text-[#C8B6A6] transition hover:text-[#DFB992] sm:inline-block">
             Favoritos
           </Link>
-          <span className="text-[#DFB992]/30">|</span>
+          <span className="hidden text-[#DFB992]/30 sm:inline-block">|</span>
           <Link to="/privacidade" className="text-[#C8B6A6] transition hover:text-[#DFB992]">
             Privacidade
           </Link>
