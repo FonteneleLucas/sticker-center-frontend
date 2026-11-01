@@ -9,7 +9,6 @@ import { useAuth } from '../lib/auth';
 import { useDocumentMeta } from '../lib/seo';
 import type { Category, Page, Sticker, SortOption } from '../lib/types';
 import {
-  BrandEmblem,
   CategoryIcon,
   IconArrowUpRight,
   IconChevronLeft,
@@ -180,71 +179,22 @@ export function HomePage() {
         {!activeCategory ? (
           /* ================= INITIAL SCREEN: HERO + NETFLIX-STYLE CATEGORIES ================= */
           <>
-            {/* Luxury Hero Banner */}
-            <section className="relative mb-8 overflow-hidden rounded-3xl border border-[#DFB992]/25 bg-gradient-to-b from-[#171310] via-[#100D0B] to-[#0B0908] px-5 py-8 text-center shadow-card sm:px-12 sm:py-12">
-              <svg
-                className="pointer-events-none absolute inset-0 h-full w-full opacity-25"
-                viewBox="0 0 800 400"
-                fill="none"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="M-100 320 C 150 200, 350 380, 900 140"
-                  stroke="url(#goldWave)"
-                  strokeWidth="1.5"
-                />
-                <path
-                  d="M-100 350 C 180 230, 380 400, 900 180"
-                  stroke="url(#goldWave)"
-                  strokeWidth="1"
-                  strokeOpacity="0.6"
-                />
-                <path
-                  d="M-80 80 C 220 220, 520 20, 880 240"
-                  stroke="url(#goldWave)"
-                  strokeWidth="1.2"
-                  strokeOpacity="0.45"
-                />
-                <defs>
-                  <linearGradient id="goldWave" x1="0" y1="0" x2="800" y2="0" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stopColor="#DFB992" stopOpacity="0" />
-                    <stop offset="50%" stopColor="#DFB992" stopOpacity="0.9" />
-                    <stop offset="100%" stopColor="#DFB992" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-              </svg>
-
-              <div className="relative z-10 mx-auto flex max-w-xl flex-col items-center">
-                <BrandEmblem className="mb-3 h-16 w-16 sm:h-20 sm:w-20" />
-
-                <h1 className="font-serif text-3xl font-bold tracking-[0.2em] text-[#F5EDE4] sm:text-5xl">
-                  STORIES
-                </h1>
-                <span className="mt-0.5 text-xs font-semibold uppercase tracking-[0.38em] text-[#DFB992] sm:text-sm">
-                  &amp; STICKERS
-                </span>
-
-                <p className="mt-3 max-w-md text-xs font-normal text-[#C8B6A6] sm:text-sm">
-                  Figurinhas para transformar seus stories.
-                </p>
-
-                {/* Pill Search Bar */}
-                <form onSubmit={handleHeroSearch} className="mt-6 w-full max-w-md">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Busque figurinhas..."
-                      className="w-full rounded-full border border-[#DFB992]/30 bg-[#151210]/95 py-3 pl-11 pr-4 text-base text-[#F5EDE4] placeholder:text-[#8E7F70] shadow-inner focus:border-[#DFB992] focus:outline-none focus:ring-1 focus:ring-[#DFB992] sm:text-sm"
-                    />
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[#DFB992]">
-                      <IconSearch size={18} />
-                    </div>
+            {/* Search Bar */}
+            <section className="mb-6">
+              <form onSubmit={handleHeroSearch} className="mx-auto w-full max-w-xl">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Busque figurinhas..."
+                    className="w-full rounded-full border border-[#DFB992]/30 bg-[#151210]/95 py-3 pl-11 pr-4 text-base text-[#F5EDE4] placeholder:text-[#8E7F70] shadow-inner transition focus:border-[#DFB992] focus:outline-none focus:ring-1 focus:ring-[#DFB992] sm:text-sm"
+                  />
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[#DFB992]">
+                    <IconSearch size={18} />
                   </div>
-                </form>
-              </div>
+                </div>
+              </form>
             </section>
 
             {/* Categorias Section (Netflix-style catalog cards) */}
