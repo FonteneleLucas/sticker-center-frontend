@@ -81,6 +81,18 @@ export function AdminPage() {
   const [editIsActive, setEditIsActive] = useState(true);
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Edit Category / Folder Modal state
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editCatName, setEditCatName] = useState('');
+  const [editCatSlug, setEditCatSlug] = useState('');
+  const [editCatDesc, setEditCatDesc] = useState('');
+  const [editCatParentId, setEditCatParentId] = useState<string>('');
+  const [editCatSortOrder, setEditCatSortOrder] = useState<number>(0);
+  const [editCatIsActive, setEditCatIsActive] = useState<boolean>(true);
+  const [editCatCoverFile, setEditCatCoverFile] = useState<File | null>(null);
+  const [editCatCoverPreview, setEditCatCoverPreview] = useState<string | null>(null);
+  const [savingCatEdit, setSavingCatEdit] = useState(false);
+
   // Active Folder / Category Workspace state (entrar dentro de uma pasta/categoria)
   const [activeFolderView, setActiveFolderView] = useState<{
     category: Category;
@@ -624,6 +636,61 @@ export function AdminPage() {
     }
   };
 
+  // Open Edit Category or Folder Modal
+  const openEditCategory = (cat: Category | { id: string; name: string; slug: string; description?: string | null; thumbnail_url?: string | null; parent_id?: string | null; sort_order?: number; is_active?: boolean }) => {
+    setEditingCategory(cat as Category);
+    setEditCatName(cat.name || '');
+    setEditCatSlug(cat.slug || '');
+    setEditCatDesc(cat.description || '');
+    setEditCatParentId(cat.parent_id || '');
+    setEditCatSortOrder(cat.sort_order ?? 0);
+    setEditCatIsActive(cat.is_active !== false);
+    setEditCatCoverFile(null);
+    setEditCatCoverPreview(cat.thumbnail_url || null);
+  };
+
+  // Save Category / Folder Changes
+  const handleSaveCategoryEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCategory) return;
+    if (!editCatName.trim()) {
+      toast.error('Informe o nome da categoria/pasta.');
+      return;
+    }
+
+    setSavingCatEdit(true);
+    try {
+      let updated = await api.admin.updateCategory(editingCategory.id, {
+        name: editCatName.trim(),
+        slug: editCatSlug.trim() || undefined,
+        description: editCatDesc.trim() || null,
+        parent_id: editCatParentId ? editCatParentId : null,
+        sort_order: Number(editCatSortOrder) || 0,
+        is_active: editCatIsActive,
+      });
+
+      // Se selecionou uma nova foto de capa dentro do modal, envia agora
+      if (editCatCoverFile) {
+        updated = await api.admin.uploadCategoryCover(editingCategory.id, editCatCoverFile);
+      }
+
+      toast.success(`"${updated.name}" atualizada com sucesso!`);
+      setEditingCategory(null);
+      setEditCatCoverFile(null);
+      setEditCatCoverPreview(null);
+      await loadAdminData();
+
+      // Se estiver visualizando essa categoria no workspace atual, atualiza a visualização
+      if (activeFolderView && activeFolderView.category.id === editingCategory.id) {
+        setActiveFolderView((prev) => prev ? { ...prev, category: { ...prev.category, ...updated } } : null);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao atualizar categoria/pasta.');
+    } finally {
+      setSavingCatEdit(false);
+    }
+  };
+
   // Open Edit Sticker Modal
   const openEditSticker = (s: Sticker) => {
     setEditingSticker(s);
@@ -1007,22 +1074,21 @@ export function AdminPage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    onClick={() => openEditCategory(activeFolderView.category)}
+                    className="rounded-full border border-[#DFB992]/40 bg-[#1E1A17] px-3.5 py-1.5 text-xs font-semibold text-[#F5EDE4] hover:bg-[#DFB992] hover:text-[#120F0D] transition flex items-center gap-1.5 shrink-0"
+                    title="Editar informações desta pasta/categoria (incluindo trocar a foto de capa)"
+                  >
+                    <IconEdit size={13} />
+                    <span>Editar Informações / Capa</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setShowNewFolderModal(true)}
                     className="rounded-full bg-[#DFB992] px-3.5 py-1.5 text-xs font-bold text-[#120F0D] hover:bg-[#F2DEC9] transition flex items-center gap-1.5 shrink-0 shadow-sm"
                     title="Cadastrar uma nova pasta/subpasta dentro desta categoria"
                   >
                     <IconPlus size={14} />
                     <span>+ Nova Pasta</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTargetCoverId(activeFolderView.category.id);
-                      coverReplaceInputRef.current?.click();
-                    }}
-                    className="rounded-full border border-[#DFB992]/30 px-3.5 py-1.5 text-xs font-medium text-[#DFB992] hover:bg-[#DFB992]/15 transition shrink-0"
-                  >
-                    Trocar Capa
                   </button>
                 </div>
               </div>
@@ -1568,7 +1634,7 @@ export function AdminPage() {
               Categorias &amp; Pastas Cadastradas
             </h2>
             <p className="mt-0.5 text-xs text-[#8E7F70]">
-              Veja suas fotos de capa estilo Netflix e gerencie pastas vinculadas.
+              Veja suas fotos de capa gerencie pastas vinculadas.
             </p>
 
             <div className="mt-5 space-y-4 max-h-[700px] overflow-y-auto pr-1">
@@ -1579,9 +1645,14 @@ export function AdminPage() {
                 >
                   {/* Category Header Row */}
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    {/* Category Cover & Info clickable to open workspace */}
                     <div className="flex items-center gap-3">
                       {/* Cover Photo Preview */}
-                      <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-xl border border-[#DFB992]/20 bg-[#0B0908]">
+                      <div
+                        onClick={() => openFolderWorkspace(cat, null)}
+                        className="relative h-14 w-20 shrink-0 overflow-hidden rounded-xl border border-[#DFB992]/20 bg-[#0B0908] cursor-pointer hover:opacity-85 hover:border-[#DFB992]/60 transition"
+                        title="Clique para entrar nesta categoria e fazer upload"
+                      >
                         {cat.thumbnail_url ? (
                           <img
                             src={mediaUrl(cat.thumbnail_url)}
@@ -1597,9 +1668,14 @@ export function AdminPage() {
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="font-serif text-base font-bold text-[#F5EDE4]">
-                            {cat.name}
-                          </h3>
+                          <button
+                            type="button"
+                            onClick={() => openFolderWorkspace(cat, null)}
+                            className="text-left font-serif text-base font-bold text-[#F5EDE4] hover:text-[#DFB992] transition flex items-center gap-1.5"
+                            title="Clique para entrar nesta categoria e fazer upload"
+                          >
+                            <span>{cat.name}</span>
+                          </button>
                           <span className="rounded-full bg-[#DFB992]/15 px-2 py-0.5 text-[10px] font-semibold text-[#DFB992]">
                             {cat.sticker_count} figurinhas
                           </span>
@@ -1626,22 +1702,12 @@ export function AdminPage() {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => openFolderWorkspace(cat, null)}
-                        className="rounded-full bg-[#DFB992]/20 border border-[#DFB992]/40 px-3 py-1 text-[11px] font-semibold text-[#DFB992] hover:bg-[#DFB992] hover:text-[#120F0D] transition flex items-center gap-1.5"
-                        title="Entrar na categoria para upload direto por arraste e gerenciar figurinhas"
+                        onClick={() => openEditCategory(cat)}
+                        className="rounded-full border border-[#DFB992]/40 bg-[#1E1A17] px-3.5 py-1 text-[11px] font-semibold text-[#F5EDE4] hover:bg-[#DFB992] hover:text-[#120F0D] transition flex items-center gap-1"
+                        title="Editar nome, foto de capa, link (slug), descrição e configurações"
                       >
-                        <IconFolder size={13} />
-                        <span>Entrar / Upload ⚡</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTargetCoverId(cat.id);
-                          coverReplaceInputRef.current?.click();
-                        }}
-                        className="rounded-full border border-[#DFB992]/30 px-3 py-1 text-[11px] font-medium text-[#DFB992] hover:bg-[#DFB992]/15"
-                      >
-                        Trocar Capa
+                        <IconEdit size={12} />
+                        <span>Editar</span>
                       </button>
                       <button
                         type="button"
@@ -1675,12 +1741,18 @@ export function AdminPage() {
                             key={f.id}
                             className="flex items-center justify-between rounded-xl bg-[#12100E] px-3.5 py-2 text-xs border border-[#DFB992]/10 hover:border-[#DFB992]/25 transition"
                           >
-                            {/* Mostrar apenas o título da pasta */}
-                            <div className="flex items-center gap-2">
-                              <span className="text-[#DFB992]">
+                            {/* Mostrar título da pasta clicável para entrar diretamente */}
+                            <div
+                              onClick={() => openFolderWorkspace(f, cat)}
+                              className="flex items-center gap-2 cursor-pointer group py-0.5 flex-1"
+                              title="Clique para entrar nesta pasta e fazer upload"
+                            >
+                              <span className="text-[#DFB992] group-hover:scale-110 transition-transform">
                                 <IconFolder size={14} />
                               </span>
-                              <span className="font-semibold text-[#F5EDE4]">{f.name}</span>
+                              <span className="font-semibold text-[#F5EDE4] group-hover:text-[#DFB992] transition">
+                                {f.name}
+                              </span>
                               <span className="text-[10px] text-[#8E7F70]">
                                 ({f.sticker_count} figurinhas)
                               </span>
@@ -1689,22 +1761,12 @@ export function AdminPage() {
                             <div className="flex items-center gap-1.5">
                               <button
                                 type="button"
-                                onClick={() => openFolderWorkspace(f, cat)}
-                                className="rounded-full bg-[#DFB992]/15 border border-[#DFB992]/30 px-2.5 py-0.5 text-[10px] font-semibold text-[#DFB992] hover:bg-[#DFB992] hover:text-[#120F0D] transition flex items-center gap-1"
-                                title="Entrar nesta pasta para upload direto por arraste e gerenciar figurinhas"
+                                onClick={() => openEditCategory(f)}
+                                className="rounded-full border border-[#DFB992]/30 bg-[#1A1714] px-2.5 py-0.5 text-[10px] font-semibold text-[#F5EDE4] hover:bg-[#DFB992] hover:text-[#120F0D] transition flex items-center gap-1"
+                                title="Editar nome, foto de capa, link (slug) e configurações da pasta"
                               >
-                                <IconFolder size={11} />
-                                <span>Entrar / Upload ⚡</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setTargetCoverId(f.id);
-                                  coverReplaceInputRef.current?.click();
-                                }}
-                                className="rounded-full px-2 py-0.5 text-[10px] text-[#DFB992] hover:underline"
-                              >
-                                Trocar Capa
+                                <IconEdit size={10} />
+                                <span>Editar</span>
                               </button>
                               <button
                                 type="button"
@@ -2388,6 +2450,199 @@ export function AdminPage() {
                     className="btn-primary text-xs px-5 py-2 font-semibold"
                   >
                     {csvImporting ? 'Processando e Importando...' : 'Iniciar Importação'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Edição de Categoria / Pasta */}
+        {editingCategory && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-lg rounded-3xl border border-[#DFB992]/30 bg-[#151210] p-6 shadow-2xl text-[#F5EDE4] max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-[#DFB992]/15 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[#DFB992]">
+                    <IconEdit size={20} />
+                  </span>
+                  <div>
+                    <h3 className="font-serif text-xl font-bold text-[#F5EDE4]">
+                      Editar {editingCategory.parent_id ? 'Pasta' : 'Categoria'}
+                    </h3>
+                    <p className="mt-0.5 text-xs text-[#8E7F70]">
+                      Altere nome, link amigável (slug), descrição e organização.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingCategory(null)}
+                  disabled={savingCatEdit}
+                  className="rounded-full p-1.5 text-[#8E7F70] hover:text-[#F5EDE4] hover:bg-[#221E1B] transition"
+                  title="Fechar"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCategoryEdit} className="mt-5 space-y-4">
+                {/* Foto de Capa da Categoria / Pasta */}
+                <div>
+                  <label className="label flex items-center justify-between">
+                    <span>Foto de Capa</span>
+                    <span className="text-[10px] text-[#DFB992] font-normal">estilo Netflix / vitrine</span>
+                  </label>
+                  <div className="flex items-center gap-4 rounded-2xl border border-[#DFB992]/20 bg-[#120F0D] p-3">
+                    <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl border border-[#DFB992]/30 bg-[#0B0908]">
+                      {editCatCoverPreview ? (
+                        <img
+                          src={mediaUrl(editCatCoverPreview)}
+                          alt="Prévia da Capa"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[10px] text-[#8E7F70]">
+                          Sem capa
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] || null;
+                          setEditCatCoverFile(f);
+                          if (f) {
+                            setEditCatCoverPreview(URL.createObjectURL(f));
+                          }
+                        }}
+                        className="w-full text-xs text-[#C8B6A6] file:mr-3 file:rounded-full file:border-0 file:bg-[#DFB992] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#120F0D] hover:file:bg-[#F2DEC9]"
+                      />
+                      <p className="mt-1 text-[10px] text-[#8E7F70]">
+                        Selecione uma imagem para trocar ou definir a capa desta pasta/categoria.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nome */}
+                <div>
+                  <label className="label">Nome da {editingCategory.parent_id ? 'Pasta' : 'Categoria'}</label>
+                  <input
+                    type="text"
+                    value={editCatName}
+                    onChange={(e) => setEditCatName(e.target.value)}
+                    className="input text-xs"
+                    placeholder="Ex: Odontologia, Bom dia, etc."
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                {/* Slug (URL amigável) */}
+                <div>
+                  <label className="label flex items-center justify-between">
+                    <span>Link amigável (Slug)</span>
+                    <span className="text-[10px] text-[#DFB992] font-normal">/{editCatSlug}</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editCatSlug}
+                    onChange={(e) => setEditCatSlug(e.target.value)}
+                    className="input text-xs font-mono"
+                    placeholder="Ex: odontologia, bom-dia"
+                  />
+                  <p className="mt-1 text-[11px] text-[#8E7F70]">
+                    Usado no link da categoria. Use letras minúsculas e hífens.
+                  </p>
+                </div>
+
+                {/* Categoria Pai (Estrutura) */}
+                <div>
+                  <label className="label flex items-center justify-between">
+                    <span>Categoria Principal (Pai)</span>
+                    <span className="text-[10px] text-[#8E7F70] font-normal">hierarquia</span>
+                  </label>
+                  <select
+                    value={editCatParentId}
+                    onChange={(e) => setEditCatParentId(e.target.value)}
+                    className="input text-xs"
+                  >
+                    <option value="">Nenhuma (Esta é uma Categoria Principal)</option>
+                    {categories
+                      .filter((c) => c.id !== editingCategory.id)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          Subpasta de: {c.name}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="mt-1 text-[11px] text-[#8E7F70]">
+                    Você pode transformar esta pasta em uma categoria principal, ou movê-la para dentro de outra categoria.
+                  </p>
+                </div>
+
+                {/* Descrição */}
+                <div>
+                  <label className="label">Descrição (opcional)</label>
+                  <textarea
+                    value={editCatDesc}
+                    onChange={(e) => setEditCatDesc(e.target.value)}
+                    rows={2}
+                    className="input text-xs"
+                    placeholder="Breve descrição da categoria ou pasta..."
+                  />
+                </div>
+
+                {/* Ordem de Exibição */}
+                <div>
+                  <label className="label flex items-center justify-between">
+                    <span>Ordem de exibição (Posição)</span>
+                    <span className="text-[10px] text-[#8E7F70] font-normal">número menor aparece primeiro</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={editCatSortOrder}
+                    onChange={(e) => setEditCatSortOrder(Number(e.target.value))}
+                    className="input text-xs"
+                    min={0}
+                    max={9999}
+                  />
+                </div>
+
+                {/* Status Ativo */}
+                <div className="pt-2 border-t border-[#DFB992]/10">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={editCatIsActive}
+                      onChange={(e) => setEditCatIsActive(e.target.checked)}
+                      className="h-4 w-4 rounded border-[#DFB992]/40 bg-[#1C1815] text-[#DFB992] focus:ring-[#DFB992]"
+                    />
+                    <span className="text-xs font-medium text-[#E6D5C3]">
+                      Visível no catálogo público (Ativa)
+                    </span>
+                  </label>
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-[#DFB992]/15">
+                  <button
+                    type="button"
+                    onClick={() => setEditingCategory(null)}
+                    disabled={savingCatEdit}
+                    className="btn-secondary text-xs px-4 py-2"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingCatEdit}
+                    className="btn-primary text-xs px-5 py-2 font-semibold"
+                  >
+                    {savingCatEdit ? 'Salvando...' : 'Salvar Alterações'}
                   </button>
                 </div>
               </form>
