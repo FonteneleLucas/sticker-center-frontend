@@ -300,8 +300,8 @@ export function HomePage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-[#090807] via-[#090807]/75 via-45% to-black/20" />
 
                       {/* Card Content Overlay */}
-                      <div className="relative z-10 flex h-full flex-col justify-between">
-                        <div className="flex items-start justify-between">
+                      <div className="relative z-10 flex h-full flex-col justify-end sm:justify-between">
+                        <div className="hidden sm:flex items-start justify-between">
                           <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#DFB992]/30 bg-[#12100E]/85 text-[#DFB992] backdrop-blur-md">
                             <CategoryIcon slug={cat.slug} name={cat.name} size={16} />
                           </div>
@@ -323,15 +323,15 @@ export function HomePage() {
                             {cat.name}
                           </h3>
                           {cat.folders && cat.folders.length > 0 ? (
-                            <p className="mt-1 line-clamp-2 text-[11px] leading-tight text-[#DFB992]/90">
+                            <p className="mt-1 hidden line-clamp-2 text-[11px] leading-tight text-[#DFB992]/90 sm:block">
                               {cat.folders.map((f) => f.name).join(' • ')}
                             </p>
                           ) : cat.description ? (
-                            <p className="mt-1 line-clamp-2 text-[11px] leading-tight text-[#A8988B]">
+                            <p className="mt-1 hidden line-clamp-2 text-[11px] leading-tight text-[#A8988B] sm:block">
                               {cat.description}
                             </p>
                           ) : (
-                            <p className="mt-1 text-[11px] text-[#A8988B]">
+                            <p className="mt-1 hidden text-[11px] text-[#A8988B] sm:block">
                               {cat.sticker_count} {cat.sticker_count === 1 ? 'figurinha' : 'figurinhas'}
                             </p>
                           )}
@@ -446,8 +446,8 @@ export function HomePage() {
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-[#090807] via-[#090807]/75 via-45% to-black/20" />
 
-                          <div className="relative z-10 flex h-full flex-col justify-between">
-                            <div className="flex justify-between">
+                          <div className="relative z-10 flex h-full flex-col justify-end sm:justify-between">
+                            <div className="hidden sm:flex justify-between">
                               <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#DFB992]/30 bg-[#12100E]/80 text-[#DFB992]">
                                 <IconFolder size={12} />
                               </span>
@@ -457,7 +457,7 @@ export function HomePage() {
                               <h4 className="font-serif text-sm font-bold text-[#F5EDE4] drop-shadow">
                                 {f.name}
                               </h4>
-                              <span className="text-[10px] text-[#A8988B]">
+                              <span className="hidden text-[10px] text-[#A8988B] sm:inline-block">
                                 {f.sticker_count} {f.sticker_count === 1 ? 'figurinha' : 'figurinhas'}
                               </span>
                             </div>
