@@ -3,7 +3,7 @@ import { BrandEmblem } from './Icons';
 
 export function Footer() {
   return (
-    <footer className="mt-auto border-t border-[#DFB992]/15 bg-[#090807] pb-20 pt-8 text-sm text-[#9A8978] md:pb-8">
+    <footer className="mt-auto border-t border-[#DFB992]/15 bg-[#090807] pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] text-sm text-[#9A8978] md:pb-8">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6">
         <div className="flex items-center gap-3">
           <BrandEmblem className="h-8 w-8" />

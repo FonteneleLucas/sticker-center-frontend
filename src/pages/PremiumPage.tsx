@@ -445,7 +445,7 @@ export function SubscriptionReturnPage() {
           {user.name && <div>Nome: <span className="font-semibold">{user.name}</span></div>}
           <div>E-mail: <span className="font-semibold">{user.email}</span></div>
           <div>Plano: <span className="font-semibold text-[#DFB992]">{user.is_premium ? '★ Premium Ativo' : 'Gratuito'}</span></div>
-          {sub && (
+          {sub && (sub.status === 'authorized' || sub.status === 'paused' || user.is_premium) && (
             <>
               <div>Tipo: <span className="font-semibold">{sub.provider === 'mercadopago_pix' ? 'Pagamento Pix' : sub.provider === 'stripe' ? 'Cartão / Apple Pay (Stripe)' : 'Assinatura Recorrente'}</span></div>
               <div>Plano: <span className="font-semibold">{sub.plan === 'annual' ? 'Anual' : 'Mensal'}</span></div>
@@ -474,23 +474,27 @@ export function SubscriptionReturnPage() {
           )}
         </div>
         {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Link to="/" className="btn-primary">Explorar figurinhas</Link>
-          {!user.is_premium && <Link to="/assinar" className="btn-secondary">Assinar Premium</Link>}
-          {sub?.provider === 'stripe' && (
-            <button className="btn-secondary" onClick={openStripePortal}>
+        <div className="grid grid-cols-2 gap-3 mt-6">
+          <Link to="/" className="btn-primary text-center">Explorar figurinhas</Link>
+          {!user.is_premium && <Link to="/assinar" className="btn-secondary text-center">Assinar Premium</Link>}
+          {user.is_premium && sub?.provider === 'stripe' && (
+            <button className="btn-secondary text-center" onClick={openStripePortal}>
               Gerenciar no Stripe
             </button>
           )}
           {sub?.provider !== 'mercadopago_pix' && sub?.status === 'authorized' && (
-            <button className="btn-secondary" onClick={cancel} disabled={cancelling}>
+            <button className="btn-secondary text-center" onClick={cancel} disabled={cancelling}>
               {cancelling ? 'Cancelando…' : 'Cancelar assinatura'}
             </button>
           )}
+        </div>
+
+        {/* Botão Sair da conta posicionado colado ao rodapé do lado direito */}
+        <div className="mt-16 pt-6 border-t border-[#DFB992]/10 flex justify-end">
           <button
             type="button"
             onClick={logout}
-            className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition ml-auto"
+            className="inline-flex items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/10 px-5 py-2.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 active:scale-95 transition"
             title="Encerrar sessão"
           >
             Sair da conta
