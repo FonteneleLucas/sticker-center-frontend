@@ -175,7 +175,7 @@ export function HomePage() {
     <div className="flex min-h-screen flex-col bg-[#090807] text-[#F5EDE4]">
       <Header hideMobileSearch />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-3.5 pt-4 pb-24 sm:px-6 sm:py-8 sm:pb-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-3.5 pt-6 pb-24 sm:px-6 sm:py-8 sm:pb-8">
         {!activeCategory ? (
           /* ================= INITIAL SCREEN: HERO + NETFLIX-STYLE CATEGORIES ================= */
           <>
