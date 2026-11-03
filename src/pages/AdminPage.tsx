@@ -5,6 +5,7 @@ import { api, adminToken, mediaUrl } from '../lib/api';
 import { useToast } from '../components/Toast';
 import type { AdminStats, Category, Sticker } from '../lib/types';
 import {
+  IconArrowUpRight,
   IconChevronLeft,
   IconEdit,
   IconFolder,
@@ -12,6 +13,7 @@ import {
   IconSearch,
   IconTrash,
   IconUpload,
+  IconX,
 } from '../components/Icons';
 import { AdminBillingTab } from './AdminBillingTab';
 
@@ -68,6 +70,9 @@ export function AdminPage() {
     error_count: number;
     errors: string[];
   } | null>(null);
+
+  // Preview Sticker Modal state
+  const [previewSticker, setPreviewSticker] = useState<Sticker | null>(null);
 
   // Edit Sticker Modal state
   const [editingSticker, setEditingSticker] = useState<Sticker | null>(null);
@@ -436,6 +441,18 @@ export function AdminPage() {
       loadAdminData();
     }
   }, [token]);
+
+  // Close preview sticker modal on Escape key
+  useEffect(() => {
+    if (!previewSticker) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPreviewSticker(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewSticker]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1422,16 +1439,28 @@ export function AdminPage() {
                               />
                             </td>
                             <td className="py-2">
-                              <div className="h-11 w-9 overflow-hidden rounded-lg border border-[#DFB992]/25 bg-[#C2A385] p-1">
+                              <button
+                                type="button"
+                                onClick={() => setPreviewSticker(s)}
+                                className="group relative h-11 w-9 overflow-hidden rounded-lg border border-[#DFB992]/25 bg-[#C2A385] p-1 transition hover:border-[#DFB992] hover:scale-105 cursor-pointer block text-left"
+                                title="Clique para ampliar figurinha"
+                              >
                                 <img
                                   src={mediaUrl(s.thumbnail_url)}
-                                  alt=""
-                                  className="h-full w-full object-contain"
+                                  alt={s.name}
+                                  className="h-full w-full object-contain pointer-events-none"
                                 />
-                              </div>
+                              </button>
                             </td>
                             <td className="py-2 font-medium text-[#F5EDE4]">
-                              {s.name}
+                              <button
+                                type="button"
+                                onClick={() => setPreviewSticker(s)}
+                                className="text-left font-medium text-[#F5EDE4] hover:text-[#DFB992] transition cursor-pointer"
+                                title="Clique para ampliar figurinha"
+                              >
+                                {s.name}
+                              </button>
                               <div className="text-[10px] text-[#8E7F70]">
                                 /{s.slug} • {s.download_count} downloads • {s.copy_count} cópias
                                 {s.tags && s.tags.length > 0 && ` • Tags: ${s.tags.slice(0, 3).join(', ')}`}
@@ -2003,16 +2032,28 @@ export function AdminPage() {
                           />
                         </td>
                         <td className="py-2">
-                          <div className="h-11 w-9 overflow-hidden rounded-lg border border-[#DFB992]/25 bg-[#C2A385] p-1">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewSticker(s)}
+                            className="group relative h-11 w-9 overflow-hidden rounded-lg border border-[#DFB992]/25 bg-[#C2A385] p-1 transition hover:border-[#DFB992] hover:scale-105 cursor-pointer block text-left"
+                            title="Clique para ampliar figurinha"
+                          >
                             <img
                               src={mediaUrl(s.thumbnail_url)}
-                              alt=""
-                              className="h-full w-full object-contain"
+                              alt={s.name}
+                              className="h-full w-full object-contain pointer-events-none"
                             />
-                          </div>
+                          </button>
                         </td>
                         <td className="py-2 font-medium text-[#F5EDE4]">
-                          {s.name}
+                          <button
+                            type="button"
+                            onClick={() => setPreviewSticker(s)}
+                            className="text-left font-medium text-[#F5EDE4] hover:text-[#DFB992] transition cursor-pointer block"
+                            title="Clique para ampliar figurinha"
+                          >
+                            {s.name}
+                          </button>
                           <div className="text-[10px] text-[#8E7F70]">
                             {s.category?.name || 'Sem categoria'} • {s.download_count} downloads • {s.copy_count} cópias
                           </div>
@@ -2086,6 +2127,171 @@ export function AdminPage() {
         </div>
       </>
     )}
+
+        {/* Modal de Pré-visualização Ampliada da Figurinha */}
+        {previewSticker && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setPreviewSticker(null);
+            }}
+          >
+            <div className="relative w-full max-w-xl rounded-3xl border border-[#DFB992]/30 bg-[#151210] p-6 shadow-2xl text-[#F5EDE4] max-h-[92vh] overflow-y-auto">
+              {/* Header */}
+              <div className="flex items-start justify-between border-b border-[#DFB992]/15 pb-4">
+                <div className="pr-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-serif text-xl font-bold text-[#F5EDE4]">
+                      {previewSticker.name}
+                    </h3>
+                    {previewSticker.is_premium ? (
+                      <span className="rounded-full border border-[#DFB992]/50 bg-[#DFB992]/15 px-2.5 py-0.5 text-[10px] font-bold text-[#DFB992]">
+                        ★ Premium
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-[#221E1B] px-2.5 py-0.5 text-[10px] font-bold text-[#8E7F70]">
+                        Gratuito
+                      </span>
+                    )}
+                    {previewSticker.is_featured && (
+                      <span className="rounded-full bg-[#DFB992]/20 px-2.5 py-0.5 text-[10px] font-bold text-[#DFB992]">
+                        ✦ Destaque
+                      </span>
+                    )}
+                    {previewSticker.is_active === false && (
+                      <span className="rounded-full bg-rose-500/20 text-rose-300 px-2 py-0.5 text-[10px] font-bold">
+                        Inativo
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-[#8E7F70]">
+                    {previewSticker.category?.name || 'Sem categoria'} • /{previewSticker.slug}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewSticker(null)}
+                  className="rounded-full p-1.5 text-[#8E7F70] hover:text-[#F5EDE4] hover:bg-[#221E1B] transition shrink-0"
+                  title="Fechar (Esc)"
+                >
+                  <IconX size={20} />
+                </button>
+              </div>
+
+              {/* Large Image Container with Checkerboard Background */}
+              <div className="mt-5 flex flex-col items-center justify-center">
+                <div className="relative w-full rounded-2xl border border-[#DFB992]/20 checkerboard-dark p-6 flex items-center justify-center min-h-[280px] max-h-[50vh] overflow-hidden">
+                  <img
+                    src={mediaUrl(
+                      previewSticker.image_url ||
+                        previewSticker.optimized_url ||
+                        previewSticker.thumbnail_url
+                    )}
+                    alt={previewSticker.name}
+                    className="max-h-[44vh] max-w-full object-contain drop-shadow-xl select-none"
+                  />
+                  {previewSticker.has_transparency && (
+                    <span className="absolute bottom-2.5 right-2.5 rounded-full bg-black/60 px-2.5 py-0.5 text-[10px] text-[#C8B6A6] backdrop-blur-sm border border-[#DFB992]/20">
+                      PNG Transparente
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Info / Metadata Grid */}
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 rounded-2xl border border-[#DFB992]/10 bg-[#1A1614] p-3 text-xs">
+                <div>
+                  <span className="text-[10px] text-[#8E7F70] block">Dimensões</span>
+                  <span className="font-semibold text-[#E6D5C3]">
+                    {previewSticker.width && previewSticker.height
+                      ? `${previewSticker.width} × ${previewSticker.height} px`
+                      : 'Original'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-[#8E7F70] block">Formato</span>
+                  <span className="font-semibold text-[#E6D5C3]">
+                    {previewSticker.mime_type
+                      ? previewSticker.mime_type.replace('image/', '').toUpperCase()
+                      : 'PNG'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-[#8E7F70] block">Downloads</span>
+                  <span className="font-semibold text-[#E6D5C3]">
+                    {previewSticker.download_count ?? 0}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-[#8E7F70] block">Cópias</span>
+                  <span className="font-semibold text-[#E6D5C3]">
+                    {previewSticker.copy_count ?? 0}
+                  </span>
+                </div>
+              </div>
+
+              {/* Descrição se houver */}
+              {previewSticker.description && (
+                <div className="mt-3 text-xs text-[#C8B6A6] bg-[#1A1614]/60 p-3 rounded-xl border border-[#DFB992]/10">
+                  <span className="text-[10px] font-semibold text-[#8E7F70] block mb-0.5 uppercase tracking-wider">
+                    Descrição
+                  </span>
+                  {previewSticker.description}
+                </div>
+              )}
+
+              {/* Tags se houver */}
+              {previewSticker.tags && previewSticker.tags.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] text-[#8E7F70] mr-1">Tags:</span>
+                  {previewSticker.tags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="rounded-full bg-[#241F1B] border border-[#DFB992]/20 px-2 py-0.5 text-[10px] text-[#DFB992]"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Actions Footer */}
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#DFB992]/15 pt-4">
+                <a
+                  href={`/sticker/${previewSticker.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-[#DFB992] hover:underline"
+                >
+                  <IconArrowUpRight size={14} />
+                  Ver página pública
+                </a>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = previewSticker;
+                      setPreviewSticker(null);
+                      openEditSticker(target);
+                    }}
+                    className="btn-primary text-xs px-4 py-2 font-semibold flex items-center gap-1.5"
+                  >
+                    <IconEdit size={14} />
+                    Editar Figurinha
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewSticker(null)}
+                    className="btn-secondary text-xs px-4 py-2"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal de Edição de Figurinha */}
         {editingSticker && (
